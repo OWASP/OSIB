@@ -1,21 +1,26 @@
 ####################################################################################
-# osib_short.yaml: Open Security Information Base (OBIB), (c) OWASP Top 10 team    #
-# This work is licendes under a Creative Commons Attribution 3.0 Unported Licence  #
+# osib_short.yaml: Open Security Information Base (OSIB), (c) OWASP Top 10 team    #
+# This work is licenced under a Creative Commons Attribution 3.0 Unported Licence  #
 # ---------------------------------------------------------------------------------#
 # Version: 20211119 - DRAFT                                                        #
 # Usage:   Use macro calls to use it,n md-files,                                   #
-#          e.g. {{ osib_get_link(<path.to.osib.object>) }}                         #
+#          e.g. {{ osib_link(link=<path.to.osib.object>) }}                        #
 #          <path.to.osib.object> = e.g. "osib.owasp.top10.2021-1-0.1"              #
 ####################################################################################
-
+---
+doctype:        OSIB
+schema:         v0.91
+date:           20211204
 children:
   owasp:
+    aliases: ["open web application security project"]
     attributes:
       sources_i18n:
         en:
           name:             "Open Web Application Security Project&reg; (OWASP)"
     children:
       "asvs":
+        aliases: ["application security verification standard", "standard_asvs"]
         attributes:
           sources_i18n:
             en:
@@ -23,13 +28,12 @@ children:
               source:       "https://owasp.org/www-project-application-security-verification-standard/"
         children:
           4-0:
-            alias:          "4-0-2"
-          4-0-2:
+            aliases: ["4", "4-0-1", "4-0-2", "4-0-3"]
             attributes:
-              source_id:    "V4.0.2"
+              source_id:    "ASVS 4.0.x"
               sources_i18n:
                 en:
-                  name:     "OWASP Application Security Verification Standard (ASVS)-V.4.0.2"
+                  name:     "OWASP Application Security Verification Standard (ASVS)-V.4.0.x"
                   source:   "https://github.com/OWASP/ASVS/tree/v4.0.2/4.0"
             children:
               1: # 1
@@ -187,6 +191,7 @@ children:
                   - link:   "osib.owasp.asvs.4-0-2.14.5"
                     type:   "child"
       top10:
+        aliases: ["top 10", "owasp top10", "owasp top 10", "top10 risks", "top 10 risks"]
         attributes:
           sources_i18n:
             en:
