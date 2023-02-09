@@ -475,6 +475,7 @@ def define_env(env):
                   reverse_osib_obj['attributes'] = {
                       'links': [ add_reverse_link_dict ]            # new list with a dict as 1st element
                   } # first list element
+                  links_list = [ add_reverse_link_dict ]            # for logging
                   result = True
                   added_yaml_data += 1                              # count added data to yaml
                 logger.info(f"{caller_function} _add_reverse_links: -> reverse link to type '{link_item['type']}' at {link_item['link']}:\n- {yaml.dump(add_reverse_link_dict, sort_keys=False, indent=2, default_flow_style=False)}")
@@ -483,6 +484,7 @@ def define_env(env):
                 reverse_osib_obj['attributes'] = {
                     'links': [ add_reverse_link_dict ]              # new list with a dict as 1st element
                 } # first list element
+                links_list = [ add_reverse_link_dict ]              # for logging
                 result = True
                 added_yaml_data += 1                                # count added data to yaml
                 logger.info(f"{caller_function} _add_reverse_links: -> reverse link to type '{link_item['type']}' at {link_item['link']}:\n- {yaml.dump(add_reverse_link_dict, sort_keys=False, indent=2, default_flow_style=False)}")
@@ -1079,6 +1081,7 @@ def define_env(env):
     else: # osib_obj
       warn_str = f">>> MACRO osib_link(): runtime error:  did not find yaml object '{link_id}'"
       logger.warning(warn_str)
+      return(f'{text} <!--- {warn_str} --->')
     logger.info (f"MACRO osib_link(): ==> {result_str}\n")
 #   Output
     if (not silent):
