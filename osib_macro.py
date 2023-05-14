@@ -57,7 +57,7 @@
 #!#      yaml_file:    include/osib.yml
 #!#      export_dir:   export
 #!#      latest:       2                            # 2: add the latest version(s), if successor(s) exist, log an info
-#!#      debug:        2                            # debug level (0-3)
+#!#      debug:        2                            # debug level (0-4)
 #!#      cre:          osib.owasp.cre.1-0
 #!#      successor_texts:
 #!#        en:         successor
@@ -94,7 +94,7 @@ import yaml
 
 yaml_file           = "include/osib.yml"                            # Default import yaml file
 export_dir          = "export"                                      # Default Export dirctory
-debug               = 3                                             # debug level 0 ... 3
+debug               = 2                                             # debug level 0 ... 4
 default_lang        = "en"                                          # default language is 'en'
 categories_default  = []                                            # no categories by default
 latest_default      = 2
@@ -299,30 +299,30 @@ def define_env(env):
         return ("")
     # classical yaml dict structure (no listed items)
     if isinstance(yaml, dict):
-      if debug > 2:
+      if debug >2:                                                  # big debug
         logger.debug("   <yaml> is a dict")
-      if (key not in yaml) and (not get_attributes):                # key is not in yaml and is no attributea -> check if key is an alias
-        if debug > 1:
+      if (key not in yaml) and (not get_attributes):                # key is not in yaml and is no attribute -> check if key is an alias
+        if debug >2:
           logger.debug(f" - {key}: search in 'aliases' lists of all yaml children")
-        if debug > 2:
+        if debug >3:
           logger.debug(f"   -> yaml: '{yaml}'")
         for child in yaml:                                          # look for aliases in all peer children
-          if debug > 1:
+          if debug >2:
             logger.debug(f"   ~ child '{child}'")
-          if debug > 3:
+          if debug >3:
             logger.debug(f"     ~ yaml[{child}]: '{yaml[child]}'")
           if (isinstance(yaml[child], dict)) and ('aliases' in yaml[child]):
-            if debug > 3:
+            if debug >3:
               logger.debug(f"     ~ yaml[{child}]['aliases']: '{yaml[child]['aliases']}'")
             if (key in yaml[child]['aliases']):                     # found key as alias of a child
-              if debug > 1:
+              if debug >1:
                 logger.info (f"   -> use (peer) alias for '{key}': '{child}'")
               key = child
               break
         # end for child
       if key not in yaml:                                           # key stays not to be in yaml
         if create:                                                  # create missing path
-          if debug > 2:
+          if debug >3:
             logger.debug(f'{caller_function} _lookup_yaml(): -> create osib-obj... \'{path}\' = {yaml}\n')
           elif debug >1:
             logger.debug(f'{caller_function} _lookup_yaml(): -> create osib-obj... \'{path}\'\n')
@@ -342,9 +342,10 @@ def define_env(env):
         return(_lookup_yaml (yaml[key], path, get_attributes = get_attributes, create = create, attributes = attributes, caller_function = caller_function))
       else:
         return (yaml[key])                                          # path is empty => found the key => Return the yaml value/remaining subtree
-    # listed items within a yamla structure
+    # listed items within a yaml structure
     elif isinstance(yaml, list):
-      logger.debug("<yaml> is a list")
+      if debug >2:                                                  # big debug
+        logger.debug("<yaml> is a list")
       nr = 0
       for item in yaml:
         _local_path = path[:len(path)]                             # create a local copy of path
@@ -402,7 +403,6 @@ def define_env(env):
           logger.info(f" {caller_function} _merge_links(): added link '{new_link_item}'")
     # end for new_link_item
     links.sort(key = lambda x: (types_list.index(x['type']), x['link']))                        # sort links (1) by order of types_list and (2) alphabetically by link
-    if debug > 2:
         logger.debug(f" {caller_function} _merge_links(): result = {result} => links '{links}'")
     return(result)
   # end _merge_links
@@ -422,14 +422,14 @@ def define_env(env):
     if not is_empty(path):
       path_list = path.lower().split(".")                           # lower and split the path string
       length  = len(path_list)
-      if debug > 2:
+      if debug >3:
         logger.debug(f" {caller_function} _get_path_list(): {path_type}: path.split() = {path_list}")
       i = 0
       while i < length:                                             # numbers are handeled as int values
         if ((path_list[i]).isnumeric()):
           path_list[i] = int(path_list[i])
         i += 1
-      if debug > 3:
+      if debug >3:
         logger.debug(f"  path_list    = {path_list}")
       if path_list[0] != "osib":                                    # Path needs to start with 'osib'
         err_str = f">>> WARNING in {caller_function} _get_path_list(): {path_type} path is no osib-path: '{path_list}'."
@@ -457,12 +457,12 @@ def define_env(env):
     result          = False
     global added_yaml_data                                          # use global counter for added_yaml_data
 
-    if debug > 2:
+    if debug >2:
       logger.debug (f"_add_reverse_links: args       = {args}")
     if osib_id and osib_id != "":
       for link_item in links:
         if (not is_empty(link_item['type'])):
-          if debug > 0:
+          if debug >0:
             logger.debug(f"  {caller_function} _add_reverse_links: add reverse link from '{link_item['link']}' to '{reverse_types_dict[link_item['type']]}': '{osib_id}'")
           reverse_path = _get_path_list(path=link_item['link'], path_type="reverse link_item", caller_function=f"{caller_function} _add_reverse_links:")
           if not is_empty_list(reverse_path):
@@ -471,7 +471,7 @@ def define_env(env):
             reverse_path_suffix       = reverse_path [2:]           # optional suffix, e.g. [<standard|project>, version, <local structure ...>]
             reverse_organization_obj  = _lookup_yaml (osib_yaml, reverse_path_organization, create = False, caller_function=f"{caller_function} _add_reverse_links:")
             if not is_empty_dict(reverse_organization_obj):         # 'osib.organization' found
-              if debug > 2:
+              if debug >2:
                 logger.debug(f"  --> {caller_function} _add_reverse_links: found parent orgaization '{reverse_path[:2]}'")
               add_reverse_link_dict = {
                 'link':        osib_id,                             # reverse link
@@ -482,9 +482,9 @@ def define_env(env):
               }
               reverse_osib_obj = _lookup_yaml (reverse_organization_obj, reverse_path_suffix, create = True, caller_function=f"{caller_function} _add_reverse_links:")
               if not is_empty_dict (reverse_osib_obj):
-                if debug > 2:
+                if debug >3:
                     logger.debug (f"  --> {caller_function} _add_reverse_links: found linked item {reverse_path}: reverse_osib_obj = {reverse_osib_obj}")
-                elif debug > 1:
+                elif debug >1:
                     logger.debug (f"  --> {caller_function} _add_reverse_links: found linked item {reverse_path}:")
                 links_list = _lookup_yaml (reverse_osib_obj, ["attributes", "links"], get_attributes = True, create = True, caller_function=f"{caller_function} _add_reverse_links:")  # get links list attribute from object
                 ### Check if reverse link to anchor and type exists
@@ -499,10 +499,10 @@ def define_env(env):
                   links_list = [ add_reverse_link_dict ]            # for logging
                   result = True
                   added_yaml_data += 1                              # count added data to yaml
-                if debug > 1:
-                    logger.info(f"{caller_function} _add_reverse_links: -> reverse link to type '{link_item['type']}' at {link_item['link']}:\n- {yaml.dump(add_reverse_link_dict, sort_keys=False, indent=2, default_flow_style=False)}")
-                if debug > 2:
-                    logger.debug(f"{caller_function} _add_reverse_links:   => {link_item['type']}'s links:\n{yaml.dump(links_list, sort_keys=False, indent=2, default_flow_style=False)}")
+                if debug >1:
+                    logger.info(f"{caller_function} _add_reverse_links: -> reverse link to type '{link_item['type']}' at '{link_item['link']}':\n- {yaml.dump(add_reverse_link_dict, sort_keys=False, indent=2, default_flow_style=False)}")
+                if debug >3:
+                    logger.debug(f"{caller_function} _add_reverse_links:   => '{link_item['type']}'s links:\n{yaml.dump(links_list, sort_keys=False, indent=2, default_flow_style=False)}")
               else:                                                 # add new attribute with 'links' list
                 reverse_osib_obj['attributes'] = {
                     'links': [ add_reverse_link_dict ]              # new list with a dict as 1st element
@@ -577,7 +577,8 @@ def define_env(env):
     found               = False
     found_links         = []
 
-    logger.debug(f"{caller_function} _get_latest_links(): args: '{args}'")
+    if debug >2:                                                    # big debug
+      logger.debug(f"{caller_function} _get_latest_links(): args: '{args}'")
     if is_empty_dict(osib_obj):
       logger.debug(f"{caller_function} _get_latest_links(): next osib_id is empty --> return found='False'")
       return(False)                                                 # is empty
@@ -664,8 +665,7 @@ def define_env(env):
     help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", source="https://owasp.org/Top10/...", name="OWASP Top10", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osibi-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from="<merged_from>", split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
     # end parameters
 
-    if debug > 0:                                                   # big_debug
-      logger.info (f"Call MACRO osib_anchor():\n  args       = {args}")
+    logger.info (f"Call MACRO osib_anchor():\n  args       = {args}")
     if debug > 2:                                                   # big_debug
       logger.info (f"  lang       = {lang}\n  categories = {categories}\n  datestamp  = {datestamp}")
     invalid_keys = [k for k in args if k not in ['osib', 'id', 'source', 'parent', 'lang', 'name', 'description', 'aliases', 'categories',
@@ -706,31 +706,31 @@ def define_env(env):
       err_str = f"MACRO osib_anchor(): Organization '{id_path[:2]}' not found in OSIB YAML file. {help_str}"
       logger.warning(err_str)
       return(f'<!--- {err_str} --->')
-    if debug > 2:                                                   # big_debug
+    if debug >2:                                                    # big_debug
       logger.debug(f"MACRO osib_anchor():   --> found orgaization '{id_path[:2]}'")
     osib_obj = _lookup_yaml (organization_obj, id_path_suffix, create = True, caller_function=f"MACRO osib_anchor():")
-    if debug > 2:                                                   # big_debug
+    if debug >3:                                                    # huge_debug
       logger.debug (f"MACRO osib_anchor():   --> found osib-item {id_path}: osib_obj = {osib_obj}")
     attributes_dict                                           = {}                              # prepare attributes dict
     if not is_empty(source_id):
       attributes_dict['source_id']                            = source_id
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): source_id = {source_id}")
     if not is_empty_list(aliases):
       attributes_dict['aliases']                              = aliases
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): aliases = {aliases}")
     if not is_empty_list(categories):
       attributes_dict['categories']                           = categories
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): categories = {categories}")
     if not is_empty(maturity):
       attributes_dict['maturity']                             = maturity
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): maturity = {maturity}")
     if not is_empty(protection_need):
       attributes_dict['protection_need']                      = protection_need
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): protection_need = {protection_need}")
     if (not is_empty(lang)):
       attributes_dict['sources_i18n']                         = { lang: {} }
@@ -825,7 +825,7 @@ def define_env(env):
               osib_obj['attributes'][key] = attributes_dict[key]    # initialize key directory with new values
             elif (lang not in osib_obj['attributes'][key]):
               osib_obj['attributes'][key][lang] = attributes_dict[key][lang]                    # initialize key's lang directorya with new values
-              if debug > 2:
+              if debug >2:
                 logger.debug(f"  added language '{lang}': {osib_obj['attributes'][key][lang]}")
             else:
               for sub_key in ['name', 'source', 'description']:
@@ -846,7 +846,7 @@ def define_env(env):
             else:
               _merge_links(osib_obj['attributes']['links'], attributes_dict['links'])
           elif (key not in osib_obj['attributes']) or (osib_obj['attributes'][key] != attributes_dict[key]):  # check key, value pairs
-            if debug > 2:
+            if debug >2:
               if key not in osib_obj['attributes']:
                 logger.debug(f"  add attribute '{key}' = '{attributes_dict[key]}'")
               else:
@@ -855,16 +855,16 @@ def define_env(env):
             change = change_update
           # end if key...
           if key in osib_obj["attributes"]:
-            if debug > 2:                                            # big_debug
+            if debug >2:                                            # big_debug
               logger.debug(f"MACRO osib_anchor():  --> osib_obj['attributes']['{key}'] = {osib_obj['attributes'][key]}")
           else:
-            logger.debug(f"MACRO osib_anchor():  --> osib_obj['attributes']['{key}']: '{key}' does not exist")
+            logger.debug(f"MACRO osib_anchor():  --> osib_obj['attributes']['{key}']: key '{key}' does not exist")
         # end for key
         if change == change_update:
           osib_obj['attributes']['status']                    = status
           osib_obj['attributes']['reviewed']                  = reviewed
           osib_obj['attributes']['change']                    = change
-        if debug > 2:                                            # big_debug
+        if debug >2:                                                # big_debug
           logger.debug(f"  --> osib_obj['attributes']['change'] = {osib_obj['attributes']['change']}")
       # end if 'attributes' ... else:
 #     Add reverse links
@@ -877,9 +877,9 @@ def define_env(env):
       logger.warning(f'>>> WARNING at osib \'{id_path}\': {osib_obj} neither found nor created')
     result_str = "<a id=\"" + osib_id + "\"></a>"                   # html anchor
     added_yaml_data += 1                                            # count added data to yaml (potentially)
-    logger.info (f"osib_anchor(): {result_str},\n                  osib_obj = {osib_obj}\n")
-    if debug > 2:                                                   # big debug
-      logger.debug(f"osib_yaml: '{osib_yaml}\n====================================================\n")
+    logger.info (f"==> osib_anchor(): {result_str},\n                    osib_obj = {osib_obj}\n")
+    if debug >3:                                                    # huge debug
+      logger.debug(f"==> osib_anchor(): osib_yaml: '{osib_yaml}\n====================================================\n")
     if not silent:
       return(result_str)
     else:
@@ -1153,7 +1153,7 @@ def on_post_build(env):
   global added_yaml_data
   global datestamp
   logger.info (f"MACRO (post-build): Call On Post Build Action: Write added/changed yaml data to dir '{export_dir}'.")
-  if added_yaml_data > 0:                                           # new data added
+  if added_yaml_data >0:                                            # new data added
     # site_dir    = env.conf['site_dir']
     now                 = datetime.now()
     timestamp           = now.strftime("%Y%m%d-%H%M%S")
@@ -1162,7 +1162,7 @@ def on_post_build(env):
       logger.info(f"Create directory '{export_dir}').")
       os.mkdir(export_dir,mode = 0o755)
     file_name   = export_dir+"/osib_export_"+timestamp+".yml"
-    if debug > 2:                                                 # big debug
+    if debug >2:                                                    # big debug
       logger.debug(f" -> DATA:\n{yaml.dump(osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n\n")
     logger.info(f"Write OSIB-yaml file '{file_name}' including up to {added_yaml_data} new or changed attributes.")
     with open(file_name, 'w') as fout:
