@@ -2,7 +2,8 @@
 Open Security Information Base (OSIB)<br>
 
 Tools:<br>
-osib_macro.py:<br>
+- mkdocs-macro-osib.py  (manually insallable python module)<br>
+- osib_macro.py         (macro to copy that imports the python module)<br>
 ```
 #!##################################################################################################################################################
 #!# This MkDocs MACRO has been developed by the OWASP-Top 10 Project in 2021.
@@ -14,9 +15,9 @@ osib_macro.py:<br>
 #!#
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
 #!#
-#!# This Python program provides two MkDocs macros to use with markdown:
+#!# This Python program provides a module including two MkDocs macros to use with markdown:
 #!# - osib_anchor:  Adds an OSIB anchor and an object to an osib YAML structure
-#!#         Input:  osib_anchor(osib=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>,
+#!#         Input:  osib_anchor(osib=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
 #!#                             source_id=<id inside the source>, lang=<lang>, source=<url_i18n>, name=<name_i18n>,
 #!#                             parent=<osib-id>, predecessor=<osib-id>, splitted_from=<osib.id>, merged_from=<osib-id>
 #!#                             cre=<osib-id>, aliases=[<list of aliases>, ...])
@@ -24,7 +25,7 @@ osib_macro.py:<br>
 #!#
 #!# - osib_link:    Get links from a osib YAML tree, optionally find successors and add linking information bidirectionally
 #!#                 to the OSIB YAML tree
-#!#       Input:    osib_link  (link=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>,
+#!#       Input:    osib_link  (link=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
 #!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|ispiltted_from|...>,
 #!#                             osib=<osib>, reviewed=<datestamp(YYYYMMDD)>, status=<active|draft|...>)
 #!#       Output:   markdown link format '["<text>|<prefix><doc_osib><doc_suffix><osib_names>"](<html_link>)<speparator> ..') and/or successor/s
@@ -35,8 +36,26 @@ osib_macro.py:<br>
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
 #!#
 #!# Requirements:
+#!# - mkdocs:               pip install mkdocs               (https://mkdocs.org)
 #!# - mkdocs-macros-plugin: pip install mkdocs-macros-plugin (https://mkdocs-macros-plugin.readthedocs.io/en/latest/)
 #!# - dacite:               pip install dacite               (https://github.com/konradhalas/dacite)
+#!#
+#!# Installation:
+#!# Actually 'manual installation' only:
+#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    pip install .
+#!# verify if osib is in your pip list
+#!#    pip list | grep osib
+#!#
+#!# Developers Installation
+#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    pip install -e .
+#!# verify if osib is in your pip list
+#!#    pip list | grep osib
+#!#
+#!$ Copy or edit 'osib_macro.py' to the root folder of your mkdocs document
+#!#    from mkdocs-macro-osib import define_env, on_post_build
+#!#    #provides MkDocs macros 'osib_anchor' and 'osib_link'
 #!#
 #!# To use the macros add in 'mkdocs.yml' (if you use the plugin 'i18n' add this macro after it):
 #!# plugins:
