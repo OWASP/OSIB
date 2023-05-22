@@ -2,7 +2,7 @@
 Open Security Information Base (OSIB)<br>
 
 Tools:<br>
-- mkdocs-macro-osib.py  (manually insallable python module)<br>
+- mkdocs_macro_osib.py  (manually insallable python module)<br>
 - osib_macro.py         (macro to copy that imports the python module)<br>
 ```
 #!##################################################################################################################################################
@@ -42,19 +42,19 @@ Tools:<br>
 #!#
 #!# Installation:
 #!# Actually 'manual installation' only:
-#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    cd <your path>/mkdocs_macro_osib_package
 #!#    pip install .
 #!# verify if osib is in your pip list
 #!#    pip list | grep osib
 #!#
 #!# Developers Installation
-#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    cd <your path>/mkdocs_macro_osib_package
 #!#    pip install -e .
 #!# verify if osib is in your pip list
 #!#    pip list | grep osib
 #!#
 #!$ Copy or edit 'osib_macro.py' to the root folder of your mkdocs document
-#!#    from mkdocs-macro-osib import define_env, on_post_build
+#!#    from mkdocs_macro_osib import define_env, on_post_build
 #!#    #provides MkDocs macros 'osib_anchor' and 'osib_link'
 #!#
 #!# To use the macros add in 'mkdocs.yml' (if you use the plugin 'i18n' add this macro after it):

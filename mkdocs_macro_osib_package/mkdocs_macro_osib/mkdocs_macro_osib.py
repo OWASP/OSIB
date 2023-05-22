@@ -1,4 +1,4 @@
-# Filename: mkdocs-macro-osib.py
+# Filename: mkdocs_macro_osib.py
 #!##################################################################################################################################################
 #!#                                  MkDocs-Macro to use and extend the Open Security Information Base (OSIB)
 #!#                                                         Version: 2021-12-05
