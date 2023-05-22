@@ -1,4 +1,4 @@
-# Filename: osib_macro.py
+# Filename: mkdocs-macro-osib.py
 #!##################################################################################################################################################
 #!#                                  MkDocs-Macro to use and extend the Open Security Information Base (OSIB)
 #!#                                                         Version: 2021-12-05
@@ -37,8 +37,27 @@
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
 #!#
 #!# Requirements:
+#!# - mkdocs:               pip install mkdocs               (https://mkdocs.org)
 #!# - mkdocs-macros-plugin: pip install mkdocs-macros-plugin (https://mkdocs-macros-plugin.readthedocs.io/en/latest/)
 #!# - dacite:               pip install dacite               (https://github.com/konradhalas/dacite)
+#!#
+#!# Installation:
+#!# Actually 'manual installation' only:
+#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    pip install .
+#!# verify if osib is in your pip list
+#!#    pip list | grep osib
+#!#
+#!# Developers Installation
+#!#    cd <your path>/mkdocs-macro-osib_package
+#!#    pip install -e .
+#!# verify if osib is in your pip list
+#!#    pip list | grep osib
+#!#
+#!$ Copy or edit 'osib_macro.py' to the root folder of your mkdocs document
+#!#    from mkdocs-macro-osib import define_env, on_post_build
+#!#    #provides MkDocs macros 'osib_anchor' and 'osib_link'
+#
 #!#
 #!# To use the macros add in 'mkdocs.yml' (if you use the plugin 'i18n' add this macro after it):
 #!# plugins:
@@ -255,7 +274,7 @@ def define_env(env):
         return(_create_dict(yaml[key]['children'], path, **args))
       else:
         yaml[key] = {}                                              # create neyt osib tree node
-        if debug > 2:                                                 # big debug
+        if debug > 2:                                               # big debug
           logger.debug(f"{caller_function} _create_dict(): created yaml['{key}']={yaml[key]}")
         return(_create_dict(yaml[key], path, **args))
     else:
@@ -273,7 +292,7 @@ def define_env(env):
 # Adds missing path elements if arg 'create = True'                                                                                             #
 # (C) OWASP/The Top10-Team                                                                                                                      #
 #################################################################################################################################################
-  def _lookup_yaml(yaml={}, path=[], **args):
+  def _lookup_yaml(yaml={}, path=[], path_item=0, **args):
     # Browses recursively through the yaml structure according to the path. Returns the value or the yaml branch found at the given path
     # changes the path list to aliases children if needed
     get_attributes  = args.get('get_attributes',    False       )   # default is False; False: adds 'children' keys to the path for tree nodes, True: use original path
@@ -283,14 +302,14 @@ def define_env(env):
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
     children        = 'children'                                    # used as key for lookups through the tree/nodes
     if debug > 1:                                                   # big_debug
-      logger.debug (f"{caller_function} _lookup_yaml (yaml:<yaml>, path:'{path}', get_attributes ='{get_attributes}', create ='{create}', attributes ='{attributes}')")
-    if debug > 2:                                                   # big_debug
+      logger.debug (f"{caller_function} _lookup_yaml (yaml:<yaml>, path:'{path}', path_item:'{path_item}', get_attributes ='{get_attributes}', create ='{create}', attributes ='{attributes}')")
+    if debug > 3:                                                   # huge_debug
       logger.debug(f"{caller_function} _lookup_yaml(): with yaml: '{yaml}'\n")
     if is_empty_list(path):                                         # path is empty => found
       return (yaml)
     if is_empty_dict(yaml):                                         # yaml is empty => not found
       return ("")
-    key=path[0]                                                     # next key
+    key=path[path_item]                                             # next key
     if not get_attributes:                                          # Osib_tree and Osib_nodes need an explicit attribute 'children' -> so we have to support this here
       if children in yaml:
         yaml = yaml[children]
@@ -384,7 +403,7 @@ def define_env(env):
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
     result          = False
 
-    if debug > 1:
+    if debug >1:
       logger.debug(f"_merge_links: args       = {args}")
     for new_link_item in new_links:
       if ('type' not in new_link_item) or ('link' not in new_link_item):
@@ -780,7 +799,7 @@ def define_env(env):
         attributes_dict['sources_i18n'][lang]['status']       = status
       if not is_empty(reviewed):
         attributes_dict['sources_i18n'][lang]['reviewed']     = reviewed
-      if debug > 2:
+      if debug >2:
         logger.debug(f"  attributes_dict['sources_i18n'] = {attributes_dict['sources_i18n']}")
     attributes_dict['links']                                  = []                              # define an empty list for links as placeholder to hold this position
     if not is_empty(parent):
@@ -828,25 +847,48 @@ def define_env(env):
                                                                     'change':    change_new
                                                                 }
                                      )
-    if debug > 3:
+    if debug >2:
         logger.debug(f"  attributes_dict['links'] = {attributes_dict['links']}")
     # end add links
     if not is_empty(status):
       attributes_dict['status']                               = status
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): status = {status}")
     if not is_empty(reviewed):
       attributes_dict['reviewed']                             = reviewed
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): reviewed = {reviewed}")
     if not is_empty(change_new):
       attributes_dict['change']                               = change_new
-      if debug > 2:                                                   # big_debug
-        logger.debug(f"MACRO osib_anchor(): change = {change}")
+      if debug >2:                                                  # big_debug
+        logger.debug(f"MACRO osib_anchor(): change = {change_new}")
     # 'children' will get the last position, if they will be created later
     if osib_obj == {} or isinstance(osib_obj, dict):                # found an dict object
-      if debug > 2:                                                   # big_debug
+      if debug >2:                                                  # big_debug
         logger.debug(f'  --> found osib_obj \'{id_path}\': {osib_obj}')
+#     Add reverse links: at least at this position to get the links normalized before they are copied (they get mutated)
+      if (not no_reverse) and (not is_empty(parent)):
+        # normalize args['osib']
+        if debug >2:                                                # big debug
+          logger.debug(f"    args['osib'](raw)    =    {args['osib']}")
+          logger.debug(f"    id_path_organization =    {id_path_organization}")
+          logger.debug(f"    id_path_suffix       =    {id_path_suffix}")
+        reverse_path    = id_path[0:1] + id_path_organization + id_path_suffix
+        new_osib        = '.'.join(map(str,reverse_path))           # update the osib argument by the normalized path
+        if debug >3:                                                # big debug!
+          logger.debug(f"    args                 =    {args}")
+          logger.debug(f"    osib                 =    {new_osib}")
+        args['osib'] = new_osib
+        if debug >2:                                                # big debug!
+          logger.debug(f"    args['osib'](normalized)= {args['osib']}")
+        if debug >3:                                                # huge debug!
+          logger.debug(f"    args                 =    {args}")
+
+        if _add_reverse_links(**args, links=attributes_dict['links'], caller_function="osib_anchor(): "): # add one list element
+          if debug >2:                                              # big_debug
+            logger.info(f"osib_anchor(): -> added reverse links of {osib_id}")
+      # end if no_reverse
+      # update or copy attributes
       if 'attributes' not in osib_obj:
         osib_obj['attributes'] = attributes_dict                    # copy attributes to dict
       else:
