@@ -1218,7 +1218,7 @@ def define_env(env):
           err_str = ">>> error in MACRO osib_link(): add to path is no osib-path: '{osib}'."
           logger.warning(err_str)
         else:
-          osib_obj   = _lookup_yaml (osib_yaml, osib_path, 1)      # normalizes osib_path also to aliased children
+          osib_obj   = _lookup_yaml (osib_yaml, osib_path, 1)       # normalizes osib_path also to aliased children
           # Mutate args['osib']
           if debug > 1:                                             # big debug=2!
             logger.debug(f"    args['osib'](raw):        {args['osib']}")
