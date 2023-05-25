@@ -1006,7 +1006,9 @@ def define_env(env):
     text            = args.get('text',          ""          )       # default text is "" -> use prefix, doc, doc_suffix, link_names
     prefix          = args.get('prefix',        ""          )       # default prefix = ""
     separator       = args.get('separator',     ", "        )       # default separator = ""
-    doc             = args.get('doc',           ""          )       # default doc = ""
+    doc_default     ='.'.join(map(str,link_id.lower().split(".")[0:3]))
+                                                                    # default doc is the links 3rd level path element, e.g. osib.owasp.top10
+    doc             = args.get('doc',           doc_default )       # default doc = ""
     doc_suffix      = args.get('doc_suffix',    ": "        )       # default doc_suffix = ": "
     osib            = args.get('osib',          ""          )       # default osib = ""; If osib=<osib> is an existing osib it adds the requested link bidirectionally
                                                                     #                    to the source and destination subtrees to a copy the yaml structure if it has not been added before.
@@ -1035,7 +1037,7 @@ def define_env(env):
       err_str=f">>> MACRO osib_link(): invalid key(s) '{invalid_keys}' in args '{args}' ignored; {help_str}"
       logger.warning(err_str)
 
-    invalid_values = [k for k in args if (not args[k]) or (args[k] is None)]
+    invalid_values = [k for k in args if (args[k] is None)]
     if not is_empty_list(invalid_values):
       err_str=f">>> MACRO osib_link(): undefined values(s) in keys '{invalid_values}' of args '{args}'; {help_str}"
       logger.warning(err_str)
