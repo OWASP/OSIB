@@ -945,7 +945,7 @@ def define_env(env):
                 osib_obj['attributes'][key][lang]['change']   = sub_change
           elif key in ['links']:
             if ('links' not in osib_obj['attributes']):
-              osib_obj['attributes']['links']                 = attributes_dict['link']
+              osib_obj['attributes']['links']                 = attributes_dict['links']
             else:
               _merge_links(osib_obj['attributes']['links'], attributes_dict['links'])
           elif (key not in osib_obj['attributes']) or (osib_obj['attributes'][key] != attributes_dict[key]):  # check key, value pairs
@@ -1053,14 +1053,14 @@ def define_env(env):
       err_str = f">>> Error in MACRO osib_link(): osib ID is missing or empty: {help_str}"
       logger.warning (err_str)
       return(f'<!--- {err_str} --->')
-    link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=caller_function)
+    link_id_path = _get_path_list(path=link_id.lower(), path_type="link_id", caller_function=caller_function)
     if is_empty_list(link_id_path):
       err_str = f">>> Error in MACRO osib_link(): path is no osib path '{link_id}': {help_str}"
       logger.warning(err_str)
       return(f'<!--- {err_str} --->')
 #   get doc
     if doc and doc != "":
-      doc_path   = _get_path_list(path=doc, path_type="doc", caller_function=caller_function)
+      doc_path   = _get_path_list(path=doc.lower(), path_type="doc", caller_function=caller_function)
       if is_empty_list(doc_path):
         err_str = f">>> Warning in MACRO osib_link(): doc path is no osib-path: '{doc}': '{help_str}'."
         logger.warning(err_str)
@@ -1084,7 +1084,7 @@ def define_env(env):
       # normalize link_id
       if debug >2:                                                  # big debug=2
         logger.debug(f"    link_id(raw):        {link_id}")
-      link_id  = '.'.join(map(str,link_id_path))                    # update the link_id by the normalized path
+      link_id  = '.'.join(map(str,link_id_path)).lower()            # update the link_id by the normalized path
       if debug >2:                                                  # big debug=2
         logger.debug(f"    link_id(normalized): {link_id}")
       # end normalize
@@ -1234,7 +1234,7 @@ def define_env(env):
               logger.debug(f"  osib_obj={osib_obj}\n")
             osib_links = _lookup_yaml (osib_obj, ["attributes", "links"], 0, get_attributes = True, create = True, caller_function=caller_function)
             add_link_dict = {
-              'link':        link_id,
+              'link':        link_id.lower(),
               'type':        type,
               'status':      status,
               'reviewed':    reviewed,
