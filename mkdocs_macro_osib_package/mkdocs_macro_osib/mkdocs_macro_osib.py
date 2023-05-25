@@ -343,6 +343,12 @@ def define_env(env):
               if debug > 2:
                 logger.debug (f"   -> path[{path_item}] = {path[path_item]}")
               break
+            else:
+              if debug >2:
+                logger.debug(f"     ~ key '{key}' not found in aliases of 'yaml[{child}]': '{yaml[child]['aliases']}'")
+          else:
+            if debug >2:
+              logger.debug(f"     ~ no aliases found for 'yaml[{child}]': '{yaml[child]}'")
         # end for child
       if key not in yaml:                                           # key stays not to be in yaml
         if create:                                                  # create missing path
@@ -352,8 +358,12 @@ def define_env(env):
             logger.debug(f'{caller_function} _lookup_yaml(): -> create osib-obj... \'{path}\'\n')
           return(_create_dict(yaml, path[path_item:], get_attributes = get_attributes, attributes = attributes, caller_function = caller_function))
         else:
+          if debug >3:
+            logger.debug(f"{caller_function} _lookup_yaml(): path '{path}' not found in '{yaml}'")
+          elif debug >1:
+            logger.debug(f"{caller_function} _lookup_yaml(): path '{path}' not found")
           return ("")                                               # nested key is not in yaml
-      if debug >2:
+      if debug >3:
         logger.debug(f" -> key '{key}': '{yaml[key]}'")
       elif debug >1:
         logger.debug(f" -> key '{key}': ")
@@ -383,11 +393,14 @@ def define_env(env):
           return(result)
       # empty list or not found
       if create:                                                    # create missing path
-        logger.debug(f'{caller_function} _lookup_yaml(): -> create osib-list-obj... \'{path}\' = {yaml}\n')
+        if debug >2:                                                # big debug
+          logger.debug(f'{caller_function} _lookup_yaml(): -> create osib-list-obj... \'{path}\' = {yaml}\n')
         new_item = {}
         yaml.append(new_item)
         return(_create_dict(new_item, path[path_item:], get_attributes = get_attributes, attributes = attributes, caller_function = caller_function))
       else:
+        if debug >1:
+          logger.debug(f"{caller_function} _lookup_yaml(): list item '{item}' not found in yaml[{item}]['aliases']: '{yaml[item]['aliases']}'")
         return ("")                                                 # nested key is not in yaml
   #end _lookup_yaml
 
@@ -629,7 +642,7 @@ def define_env(env):
     for i in range(len(links)-1, -1, -1):                           # backward iteration to 0 (if len > 1)
       link_item = links[i]
       if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "splitted_to" ]):
-        link_id      = link_item['link']
+        link_id      = link_item['link'].lower()
         link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=f"{caller_function} _get_latest_links:")
         if is_empty_list(link_id_path):
           err_str = f">>> WARNING in {caller_function} _get_latest_links(): successor link type '{link_item['type']}': path is no osib-path: '{link_id}'. Fall back to previous successor."
@@ -769,10 +782,6 @@ def define_env(env):
       attributes_dict['source_id']                            = source_id
       if debug >2:                                                  # big_debug
         logger.debug(f"MACRO osib_anchor(): source_id = {source_id}")
-    if not is_empty_list(aliases):
-      attributes_dict['aliases']                              = aliases
-      if debug >2:                                                  # big_debug
-        logger.debug(f"MACRO osib_anchor(): aliases = {aliases}")
     if not is_empty_list(categories):
       attributes_dict['categories']                           = categories
       if debug >2:                                                  # big_debug
@@ -888,6 +897,24 @@ def define_env(env):
           if debug >2:                                              # big_debug
             logger.info(f"osib_anchor(): -> added reverse links of {osib_id}")
       # end if no_reverse
+      # copy or update aliases
+      if not is_empty_list(aliases):
+        aliases                                   = [a.lower() for a in aliases]    # lower all aliases
+        if debug >3:                                                # big_debug
+          logger.debug(f"MACRO osib_anchor(): add aliases = {aliases}")
+        if 'aliases' not in osib_obj:
+          osib_obj['aliases']                     = aliases         # copy attributes to dict
+          if debug >2:                                              # big_debug
+            logger.debug(f"MACRO osib_anchor(): created aliases = {aliases}")
+        else:
+          for alias in aliases:
+            if (alias not in osib_obj['aliases']):
+              osib_obj['aliases'].append(alias)
+              if debug >3:                                          # huge_debug
+                logger.debug(f"MACRO osib_anchor(): add alias = {alias}")
+          if debug >2:                                                # big_debug
+            logger.debug(f"MACRO osib_anchor(): updated aliases list osib_obj['aliases']: '{osib_obj['aliases']}'")
+      # end copy or update aliases
       # update or copy attributes
       if 'attributes' not in osib_obj:
         osib_obj['attributes'] = attributes_dict                    # copy attributes to dict
