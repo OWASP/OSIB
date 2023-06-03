@@ -104,6 +104,7 @@
 import os
 import warnings
 import logging
+import re
 from typing import Any, Dict, List, Union, NewType
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
@@ -573,6 +574,25 @@ def define_env(env):
 
 
 #################################################################################################################################################
+# _normalize_osib:                                                                                                                              #
+#     Internal function to normalize an osib path: To be used for the variables osib, link and alias-element                                    #
+#     (lower a string, replace one or more whitespaces by space, remove leading and trailing whitespaces)                                       #
+# (C) OWASP/The Top10-Team                                                                                                                      #
+#################################################################################################################################################
+  def _normalize_osib(osib, **args) -> str:
+    caller_function     = args.get('caller_function',       ""          )   # default caller_function is "", used for logging
+
+    if debug >3:                                                    # debug
+      logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}'")
+    osib_new = re.sub ("\s+", " ", osib)                            # replace one or more whitespaces by space, lower all characters
+    osib_new = osib_new.lower().strip()                             # lower all characters, remove all leading anid trailing spaces
+    if debug >1:                                                    # debug
+      logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> '{osib_new}'")
+    return(osib_new)
+  # end _normalize_osib_
+
+
+#################################################################################################################################################
 # _get_named_source:                                                                                                                            #
 #     Internal function to get the source URL and source name for lang or default_lang                                                          #
 # (C) OWASP/The Top10-Team                                                                                                                      #
@@ -642,7 +662,7 @@ def define_env(env):
     for i in range(len(links)-1, -1, -1):                           # backward iteration to 0 (if len > 1)
       link_item = links[i]
       if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "splitted_to" ]):
-        link_id      = link_item['link'].lower()
+        link_id      = _normalize_osib(link_item['link'], caller_function="_get_latest_links")
         link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=f"{caller_function} _get_latest_links:")
         if is_empty_list(link_id_path):
           err_str = f">>> WARNING in {caller_function} _get_latest_links(): successor link type '{link_item['type']}': path is no osib-path: '{link_id}'. Fall back to previous successor."
@@ -730,6 +750,7 @@ def define_env(env):
     result_str      = ""
     help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", create_organization=False, source="https://owasp.org/Top10/...", name="OWASP Top10", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osib-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from="<merged_from>", split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
     # end parameters
+    osib_id         = _normalize_osib(osib_id, caller_function="osib_anchor")
 
     logger.info (f"Call MACRO osib_anchor():\n  args       = {args}")
     if debug > 2:                                                   # big_debug
@@ -899,7 +920,7 @@ def define_env(env):
       # end if no_reverse
       # copy or update aliases
       if not is_empty_list(aliases):
-        aliases                                   = [a.lower() for a in aliases]    # lower all aliases
+        aliases                                   = [_normalize_osib(a, caller_function="osib_anchor(aliases)") for a in aliases]    # normalize all aliases
         if debug >3:                                                # big_debug
           logger.debug(f"MACRO osib_anchor(): add aliases = {aliases}")
         if 'aliases' not in osib_obj:
@@ -994,7 +1015,8 @@ def define_env(env):
   # (C) OWASP/The Top10-Team, 2021                                                                                                              #
   ###############################################################################################################################################
   def osib_link(**args):
-    link_id         = args.get('link',          ""          )       # default link is ""
+    link_id         = args.get('link',          ""          )       # osib link, default link is ""
+    link_id         = _normalize_osib(link_id, caller_function="osib_link(link_id)")
     create_organzation = args.get('create_organization',  False )   # default is False
     lang            = args.get('lang',          default_lang)       # default language is <default_language>
     latest          = int(args.get('latest',    0           ))      # default for latest = 0;
@@ -1006,12 +1028,14 @@ def define_env(env):
     text            = args.get('text',          ""          )       # default text is "" -> use prefix, doc, doc_suffix, link_names
     prefix          = args.get('prefix',        ""          )       # default prefix = ""
     separator       = args.get('separator',     ", "        )       # default separator = ""
-    doc_default     ='.'.join(map(str,link_id.lower().split(".")[0:3]))
+    doc_default     ='.'.join(map(str,link_id.split(".")[0:3]))
                                                                     # default doc is the links 3rd level path element, e.g. osib.owasp.top10
-    doc             = args.get('doc',           doc_default )       # default doc = ""
+    doc             = args.get('doc',           doc_default )       # doc osib link, default doc = ""
+    doc             = _normalize_osib(doc, caller_function="osib_link(doc)")
     doc_suffix      = args.get('doc_suffix',    ": "        )       # default doc_suffix = ": "
     osib            = args.get('osib',          ""          )       # default osib = ""; If osib=<osib> is an existing osib it adds the requested link bidirectionally
                                                                     #                    to the source and destination subtrees to a copy the yaml structure if it has not been added before.
+    osib            = _normalize_osib(osib, caller_function="osib_link(osib)")
     type            = args.get('type',          "reference" )       # default type = "reference"; Adds the link to 'osib' as an reference; adds an reverce link according the reverse_types_dict)
     status          = args.get('status',        "active"    )       # default status="active" => adds link status="active"
     change_new      = args.get('change_new',    "new"       )       # default change_new="new"       => adds change="new"
@@ -1055,14 +1079,14 @@ def define_env(env):
       err_str = f">>> Error in MACRO osib_link(): osib ID is missing or empty: {help_str}"
       logger.warning (err_str)
       return(f'<!--- {err_str} --->')
-    link_id_path = _get_path_list(path=link_id.lower(), path_type="link_id", caller_function=caller_function)
+    link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=caller_function)
     if is_empty_list(link_id_path):
       err_str = f">>> Error in MACRO osib_link(): path is no osib path '{link_id}': {help_str}"
       logger.warning(err_str)
       return(f'<!--- {err_str} --->')
 #   get doc
     if doc and doc != "":
-      doc_path   = _get_path_list(path=doc.lower(), path_type="doc", caller_function=caller_function)
+      doc_path   = _get_path_list(path=doc, path_type="doc", caller_function=caller_function)
       if is_empty_list(doc_path):
         err_str = f">>> Warning in MACRO osib_link(): doc path is no osib-path: '{doc}': '{help_str}'."
         logger.warning(err_str)
@@ -1118,7 +1142,7 @@ def define_env(env):
               if not is_empty_list(successor_id_path):
                 successor_obj   = _lookup_yaml (osib_yaml, successor_id_path, 1)
                 ### Mutate successor_item
-                successor_item['link'] = '.'.join(map(str,successor_id_path))                          # update the link item by the normalized path
+                successor_item['link'] = '.'.join(map(str,successor_id_path)).lower()                   # update the link item by the normalized path
                 if debug >2:                                        # big debug
                   logger.debug(f"    successor_item['link'](normalized): {successor_item['link']}")
                 ### End Mutate
