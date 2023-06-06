@@ -1085,7 +1085,7 @@ def define_env(env):
       logger.warning(err_str)
       return(f'<!--- {err_str} --->')
 #   get doc
-    if doc and doc != "":
+    if doc and (doc != "") and (len(link_id_path) >3):              # doc needs to be defined, not empty, and the link ID needs to be at least a path with depth 4
       doc_path   = _get_path_list(path=doc, path_type="doc", caller_function=caller_function)
       if is_empty_list(doc_path):
         err_str = f">>> Warning in MACRO osib_link(): doc path is no osib-path: '{doc}': '{help_str}'."
