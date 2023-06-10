@@ -1,5 +1,4 @@
-# OSIB-Test
-Open Security Information Base (OSIB)<br>
+# Open Security Information Base (OSIB)<br>
 
 Tools:<br>
 - mkdocs_macro_osib.py  (manually insallable python module)<br>
@@ -80,7 +79,7 @@ Tools:<br>
 #!#        en:         successor
 #!#        de:         Nachfolger
 #!#      split_to_texts:
-#!#        en:         splitted to
+#!#        en:         split to
 #!#        de:         Aufgeteilt in
 #!#
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
