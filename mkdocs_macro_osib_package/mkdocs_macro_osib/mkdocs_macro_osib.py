@@ -616,11 +616,17 @@ def define_env(env):
 
     if debug >3:                                                    # debug
       logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}'")
-    osib_new = re.sub ("\s+", " ", osib)                            # replace one or more whitespaces by space, lower all characters
-    osib_new = osib_new.lower().strip()                             # lower all characters, remove all leading anid trailing spaces
-    if debug >1:                                                    # debug
-      logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> '{osib_new}'")
-    return(osib_new)
+    if isinstance(osib, str):
+      osib_new = re.sub (r"_", " ", osib)                             # replace underline by space
+      osib_new = re.sub (r"\s+", " ", osib_new)                       # replace one or more whitespaces by space
+      osib_new = osib_new.lower().strip()                             # lower all characters, remove all leading anid trailing spaces
+      if debug >1:                                                    # debug
+        logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> '{osib_new}'")
+      return(osib_new)
+    else:
+      if debug >1:                                                    # debug
+        logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> is no string: nothing to do")
+      return(osib)
   # end _normalize_osib_
 
 
@@ -710,7 +716,7 @@ def define_env(env):
         ### Mutate link_item
         if debug >2:                                                # big debug=
           logger.debug(f"  {caller_function} _get_latest_links(): link_item['link'](original):   {link_item['link']}")
-        link_item['link'] = '.'.join(map(str,link_id_path))         # update the link item by the normalized path
+        link_item['link'] = '.'.join(map(str,link_id_path))         # update the link item by the normalized path ### TBD: check if this is too much
         if debug >2:                                                # big debug
           logger.debug(f"  {caller_function} _get_latest_links(): link_item['link'](normalized): {link_item['link']}")
         ### End Mutate
@@ -721,14 +727,14 @@ def define_env(env):
           if debug >1:                                              # debug
             logger.debug(f"{caller_function} _get_latest_links():  --> return found='False'")
           return(False)                                             # The previous link is the latest valid successor
-        if debug >1:                                                # debug
+        if debug >2:                                                # debug
           logger.debug(f"{caller_function} _get_latest_links():  --> found: '{osib_link_obj}' --> try to get next successor")
         result          = _get_latest_links(osib_obj=osib_link_obj, latest_links=latest_links, caller_function=caller_function)
         if not result:                                              # the susseccor link is not valid
           named_source_dict = _get_named_source(osib_link_obj, lang=lang, caller_function=f"{caller_function} _get_latest_links:")
           if (not is_empty_dict (named_source_dict)) and ('source' in named_source_dict) and (not is_empty(named_source_dict['source'])):   # link has a source
             found_links.append(link_item)                           # collect all found links to a temporary list
-            if debug >2:                                            # big debug
+            if debug >3:                                            # big debug
               logger.debug(f"{caller_function} _get_latest_links():  --> found_link -> add '{link_item}' to temp list.")
         else:
           found = True                                              # found links of sussessors already
@@ -1247,8 +1253,8 @@ def define_env(env):
             successor_id_path   = _get_path_list(path=successor_id, path_type="successor_id", caller_function=caller_function)
             if not is_empty_list(successor_id_path):
               successor_obj     = _lookup_yaml (osib_yaml, successor_id_path, 1)
-              ### Mutate latest_links 
-              latest_links[0]['link'] = '.'.join(map(str,successor_id_path))                          # update the link item by the normalized path
+              ### Mutate latest_links; TBD: Check if this is needed or too much
+              latest_links[0]['link'] = '.'.join(map(str,successor_id_path))                    # update the link item by the normalized path
               if debug >2:                                          # big debug
                 logger.debug(f"    latest_links[0]['link'](normalized): {latest_links[0]['link']}")
               ### End Mutate
