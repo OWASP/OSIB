@@ -1090,7 +1090,7 @@ def define_env(env):
     link_id         = _normalize_osib(link_id, caller_function="osib_link(link_id)")
     create_organzation = args.get('create_organization',  False )   # default is False
     lang            = args.get('lang',          default_lang)       # default language is <default_language>
-    latest          = int(args.get('latest',    0           ))      # default for latest = 0;
+    latest          = int(args.get('latest',    latest_default))    # latest_default is a global variable
                                                                     #         0: Get link_id, do not follow links to latest versions
                                                                     #         1: Log a warning, if successor(s) of link_id exist
                                                                     #         2: Add the latest version(s), if successor(s) exist, log an info
