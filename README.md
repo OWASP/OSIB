@@ -74,7 +74,7 @@ Tools:<br>
 #!#      yaml_file:    include/osib.yml
 #!#      export_dir:   export
 #!#      latest:       2                            # 2: add the latest version(s), if successor(s) exist, log an info
-#!#      debug:        2                            # debug level (0-3)
+#!#      debug:        2                            # debug level (0-4)
 #!#      cre:          osib.owasp.cre.1-0
 #!#      successor_texts:
 #!#        en:         successor

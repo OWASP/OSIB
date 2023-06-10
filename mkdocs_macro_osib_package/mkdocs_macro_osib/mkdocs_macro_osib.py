@@ -749,7 +749,8 @@ def define_env(env):
       _merge_links(latest_links, found_links)
       return(True)
     else:                                                           # did not find any successors
-      logger.debug(f"{caller_function} _get_latest_links():  --> return found='{found}'")
+      if debug >1:                                                  # debug
+        logger.debug(f"{caller_function} _get_latest_links():  --> return found='{found}'")
       return(found)
   # end:_get_latest_links
 
@@ -1066,7 +1067,7 @@ def define_env(env):
       osib_warnings += 1
     result_str = "<a id=\"" + osib_id + "\"></a>"                   # html anchor
     added_yaml_data += 1                                            # count added data to yaml (potentially)
-    logger.info (f"==> osib_anchor(): {result_str},\n                    osib_obj = {osib_obj}\n")
+    logger.info (f"==> osib_anchor(): {result_str},\n                    osib_obj '{osib_id}' = {osib_obj}\n")
     if debug >3:                                                    # huge debug
       logger.debug(f"==> osib_anchor(): osib_yaml: '{osib_yaml}\n====================================================\n")
     if not silent:
@@ -1338,17 +1339,17 @@ def define_env(env):
         else:
           osib_obj   = _lookup_yaml (osib_yaml, osib_path, 1)       # normalizes osib_path also to aliased children
           # Mutate args['osib']
-          if debug > 1:                                             # big debug=2!
+          if debug > 2:                                             # big debug
             logger.debug(f"    args['osib'](raw):        {args['osib']}")
             logger.debug(f"    osib_path[] =             {osib_path}")
           osib = '.'.join(map(str,osib_path))                       # update the osib argument by the normalized path
           args['osib'] = osib
-          if debug > 1:                                             # big debug=2!
+          if debug > 2:                                             # big debug
             logger.debug(f"    args['osib'](normalized): {args['osib']}")
           # End Mutate osib
           # update or add links
           if osib_obj and osib_obj != "":                           # found osib object
-            if debug > 0:                                           # debug
+            if debug > 2:                                           # big debug
               logger.debug(f"  osib_obj={osib_obj}\n")
             osib_links = _lookup_yaml (osib_obj, ["attributes", "links"], 0, get_attributes = True, create = True, caller_function=caller_function)
             add_link_dict = {
@@ -1402,7 +1403,7 @@ def on_post_build(env):
   global added_yaml_data
   global osib_warnings
   global datestamp
-  logger.info (f"MACRO (post-build): Call On Post Build Action: Write added/changed yaml data to dir '{export_dir}'.")
+  logger.info (f"OSIB-MACRO (post-build): Call On Post Build Action: Write added/changed yaml data to dir '{export_dir}'.")
   logger.info (f" -> Number of runtime WARNINGs: {osib_warnings}.")
   osib_warnings         = 0                                         # reset counter
   if added_yaml_data >0:                                            # new data added
@@ -1414,7 +1415,7 @@ def on_post_build(env):
       logger.info(f"Create directory '{export_dir}').")
       os.mkdir(export_dir,mode = 0o755)
     file_name   = export_dir+"/osib_export_"+timestamp+".yml"
-    if debug >2:                                                    # big debug
+    if debug >3:                                                    # big debug
       logger.debug(f" -> DATA:\n{yaml.dump(osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n\n")
     logger.info(f"Write OSIB-yaml file '{file_name}' including up to {added_yaml_data} new or changed attributes.")
     added_yaml_data     = 0                                         # reset counter
