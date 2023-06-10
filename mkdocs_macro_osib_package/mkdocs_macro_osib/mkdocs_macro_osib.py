@@ -150,12 +150,26 @@ elif debug > 0:
   logging.basicConfig(level=logging.INFO)
 
 
+## checks if a value is no dict ##
+def is_no_dict(values: Any) -> bool:
+  return (
+    values is None
+    or (not isinstance(values, dict))
+  )
+
 ## checks if a dict is empty ##
 def is_empty_dict(values: Any) -> bool:
   return (
     values is None
     or (not isinstance(values, dict))
     or values == {}
+  )
+
+## checks if a value is no list ##
+def is_no_list(values: Any) -> bool:
+  return (
+    values is None
+    or (not isinstance(values, list))
   )
 
 ## checks if a list is empty ##
@@ -179,7 +193,7 @@ def is_empty(value: Any) -> bool:
     or string.lower()   == "nan"
     or string.lower()   == "no"
     or string.lower()   == "tbd"
-    or "n/a"            in string.lower()
+    or string.lower()   == "n/a"
   )
 
 
@@ -264,10 +278,14 @@ def define_env(env):
       logger.debug(f"{caller_function} _create_dict (path = '{path}', args = {args}')")
 
     if is_empty_list(path):
-      yaml = attributes
-      if debug > 3:
-        logger.debug(f"{caller_function} _create_dict(): return yaml={yaml}")
-      return(yaml[key])
+      if is_empty_dict(yaml):
+        yaml = attributes
+        if debug > 1:
+            logger.debug(f"{caller_function} _create_dict(): return yaml={yaml}")
+      else:
+        logger.warning(f"{caller_function} _create_dict(): nothing to create return yaml={yaml}")
+        osib_warnings += 1
+      return(yaml)
     key = path[0]
     path.pop(0)
     if len(path) > 0:
@@ -277,13 +295,13 @@ def define_env(env):
                     }                                               # add dict as child of the higher level
         return(_create_dict(yaml[key]['children'], path, **args))
       else:
-        yaml[key] = {}                                              # create neyt osib tree node
-        if debug > 2:                                               # big debug
+        yaml[key] = {}                                              # create next osib tree node
+        if debug > 1:                                               # big debug
           logger.debug(f"{caller_function} _create_dict(): created yaml['{key}']={yaml[key]}")
         return(_create_dict(yaml[key], path, **args))
     else:
       yaml[key] = attributes
-      if debug > 3:
+      if debug > 1:
         logger.debug(f"{caller_function} _create_dict(): return yaml['{key}']={yaml[key]}")
       return(yaml[key])
     # end if len(path)
@@ -312,13 +330,17 @@ def define_env(env):
       logger.debug(f"{caller_function} _lookup_yaml(): with yaml: '{yaml}'\n")
     if is_empty_list(path):                                         # path is empty => found
       return (yaml)
-    if is_empty_dict(yaml):                                         # yaml is empty => not found
+    if is_no_dict(yaml):                                            # yaml is no dict => not found
+      logger.warning(f"{caller_function} _lookup_yaml(): yaml is no dict: path:'{path}' not generated'\n")
+      osib_warnings += 1
       return ("")
     key=path[path_item]                                             # next key
     if not get_attributes:                                          # Osib_tree and Osib_nodes need an explicit attribute 'children' -> so we have to support this here
       if children in yaml:
         yaml = yaml[children]
       elif create:
+        if debug >2:                                                # big debug
+          logger.debug(f"   created element '{children}' for key '{key}'")
         yaml[children]  = {}                                        # add empty dict
         yaml            = yaml[children]
       else:                                                         # not found
@@ -520,9 +542,9 @@ def define_env(env):
             reverse_path_organization = reverse_path [1:2]          # [osib, organisation] is obligatory: check here for organization
             reverse_path_suffix       = reverse_path [2:]           # optional suffix, e.g. [<standard|project>, version, <local structure ...>]
             reverse_organization_obj  = _lookup_yaml (osib_yaml, reverse_path_organization, 0, create = create_organization, caller_function=f"{caller_function} _add_reverse_links:")
-            if not is_empty_dict(reverse_organization_obj):         # 'osib.organization' found
+            if not is_no_dict(reverse_organization_obj):            # 'osib.organization' found
               if debug >2:
-                logger.debug(f"  --> {caller_function} _add_reverse_links: found parent orgaization '{reverse_path[:2]}'")
+                logger.debug(f"  --> {caller_function} _add_reverse_links: found parent organization '{reverse_path[:2]}'")
               add_reverse_link_dict = {
                 'link':        osib_id,                             # reverse link
                 'type':        reverse_types_dict[link_item['type']],
@@ -531,7 +553,7 @@ def define_env(env):
                 'change':      change_new
               }
               reverse_osib_obj = _lookup_yaml (reverse_organization_obj, reverse_path_suffix, 0, create = True, caller_function=f"{caller_function} _add_reverse_links:")
-              if not is_empty_dict (reverse_osib_obj):
+              if not is_no_dict (reverse_osib_obj):
                 if debug >3:
                     logger.debug (f"  --> {caller_function} _add_reverse_links: found linked item {reverse_path}: reverse_osib_obj = {reverse_osib_obj}")
                 elif debug >1:
@@ -573,7 +595,7 @@ def define_env(env):
                 logger.debug(f"    link_item['link'](normalized): {link_item['link']}")
               # end normalize
             else:
-              logger.warning(f">>> {caller_function} _add_reverse_links: WARNING at osib '{reverse_path}': '{reverse_osib_obj}' neither found nor created")
+              logger.warning(f">>> {caller_function} _add_reverse_links: WARNING at osib '{reverse_path}': reverse_path_organization '{reverse_path_organization}' neither found nor created")
               osib_warnings += 1
           # end if not is_empty_list(reverse_path)
         # end if link_item['type']
@@ -775,25 +797,39 @@ def define_env(env):
                                                  'categories', 'maturity', 'protection_need', 'cre', 'status', 'change_new', 'change_update', 'reviewed',
                                                  'predecessor', 'merged_from', 'split_from', 'no_reverse', 'reverse_status', 'silent']]
     if not is_empty_list(invalid_keys):
-      err_str=f">>> MACRO osib_anchor(): invalid key(s) '{invalid_keys}' in args '{args}' ignored; {help_str}"
+      err_str=f">>> MACRO osib_anchor(): invalid key(s) '{invalid_keys}' in args '{args}' ignored;\n{help_str}"
       logger.warning(err_str)
       osib_warnings += 1
 
     invalid_values = [k for k in args if (not args[k]) or (args[k] is None)]
     if not is_empty_list(invalid_values):
-      err_str=f">>> MACRO osib_anchor(): undefined values(s) in keys '{invalid_values}' of args '{args}'; {help_str}"
+      err_str=f">>> MACRO osib_anchor(): undefined values(s) in keys '{invalid_values}' of args '{args}';\n{help_str}"
       logger.warning(err_str)
       osib_warnings += 1
       return (f"<!--- {err_str} --->")
-
+    if is_no_list(merged_from):
+      err_str=f">>> MACRO osib_anchor(): 'merged_from' needs to be a list [<osib-list>, ...];\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
+      return (f"<!--- {err_str} --->")
+    if is_no_list(aliases):
+      err_str=f">>> MACRO osib_anchor(): 'aliases' needs to be a list [<osib-list>, ...];\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
+      return (f"<!--- {err_str} --->")
     if not is_empty_dict(env.page):                                 # get page information from macro plugin
       page = env.page
     else:
       page = "--unknown--"
     logger.debug(f"Page: '{env.page}'")
 
-    if is_empty(osib_id) or is_empty(source):                       # is an empty string
-      err_str = f"MACRO osib_anchor(): 'osib' id and/or 'source' are missing or empty: {help_str}"
+    if is_empty(osib_id):                                           # is an empty string
+      err_str = f"MACRO osib_anchor(): 'osib' id is missing or empty: name='{name}', source='{source}'.\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
+      return(f'<!--- {err_str} --->')
+    if is_empty(source):                                            # is an empty string
+      err_str = f"MACRO osib_anchor(): 'source' is missing or empty: osib='{osib_id}', name='{name}'.\n{help_str}"
       logger.warning(err_str)
       osib_warnings += 1
       return(f'<!--- {err_str} --->')
@@ -801,7 +837,7 @@ def define_env(env):
       osib_yaml = read_osib_yaml(yaml_file)
     id_path = _get_path_list(path=osib_id, path_type="osib_id", caller_function=f"MACRO osib_anchor():")
     if is_empty_list(id_path):
-      err_str = f"MACRO osib_anchor(): no osib path '{osib_id}' in OSIB YAML file. {help_str}"
+      err_str = f"MACRO osib_anchor(): no osib path '{osib_id}' in OSIB YAML file.\n{help_str}"
       logger.warning(err_str)
       osib_warnings += 1
       return(f'<!--- {err_str} --->')
@@ -809,7 +845,7 @@ def define_env(env):
     id_path_organization = id_path [1:2]                            # [osib, organisation] is obligatory: check here for organization
     id_path_suffix       = id_path [2:]                             # optional suffix, e.g. [<standard|project>, version, <local structure ...>]
     organization_obj     = _lookup_yaml (osib_yaml, id_path_organization, 0, create = create_organization, caller_function=f"MACRO osib_anchor():")
-    if is_empty_dict(organization_obj):  # no 'osib.organization' found
+    if is_no_dict(organization_obj):                                # no 'osib.organization' found nor created
       err_str = f"MACRO osib_anchor(): Organization '{id_path[:2]}' not found in OSIB YAML file. {help_str}"
       logger.warning(err_str)
       osib_warnings += 1
@@ -840,6 +876,9 @@ def define_env(env):
       attributes_dict['sources_i18n']                         = { lang: {} }
       if not is_empty(name):
         attributes_dict['sources_i18n'][lang]['name']         = name
+      else:
+        logger.warning(f"MACRO osib_anchor(): osib-item '{id_path}': lang '{lang}': name is missing; {help_str}")
+        osib_warnings += 1
       if not is_empty(source):
         attributes_dict['sources_i18n'][lang]['source']       = source                          # url
       else:
@@ -953,7 +992,7 @@ def define_env(env):
             logger.debug(f"MACRO osib_anchor(): created aliases = {aliases}")
         else:
           for alias in aliases:
-            if (alias not in osib_obj['aliases']):
+            if (alias not in osib_obj['aliases']) and (alias != reverse_path[-1]):                      # alias is not in the alias list and not the actual (normalized) OSIB element
               osib_obj['aliases'].append(alias)
               if debug >3:                                          # huge_debug
                 logger.debug(f"MACRO osib_anchor(): add alias = {alias}")
@@ -1262,8 +1301,15 @@ def define_env(env):
         if is_empty(link_name):
           warn_str = f">>> runtime warning: 'name' is empty or not in yaml object '{link_id}' -> source: {named_source_dict}, language(s): {unique([lang, default_lang])}. Using 'link_name' = '{link}' instead."
           logger.warning(warn_str)
-          link_name = link
-        result_str = "[" + prefix + doc_str + link_name + "](" + link +")"
+          osib_warnings += 1
+          if not is_empty(link):
+            link_name = link
+          else:
+            link_name = (f"{text} (OSIB: &lt;{link_id}&gt;: 'name' and 'source' are not defined. Verify 'osib.yml' and/or '{{ osib_anchor(...) }}', please)")
+        if not is_empty(link):
+          result_str = "[" + prefix + doc_str + link_name + "](" + link +")"
+        else:
+          result_str = "MACRO osib_link(): " + prefix + doc_str + link_name
       if (latest <=1) and (not is_empty(successor_str)):            # do not add successors, 1: log only a warning
         warn_str = f">>> warning: '{link_id}' has successors: '{successor_str}', please check you linked osib objects or change parameter 'latest=2' or 3."
         logger.warning(warn_str)
@@ -1328,7 +1374,7 @@ def define_env(env):
       warn_str = f">>> MACRO osib_link(): runtime error:  did not find yaml object '{link_id}'"
       logger.warning(warn_str)
       osib_warnings += 1
-      return(f'{text} (unresolved OSIB-Link: &lt;{link_id}&gt;) <!--- {warn_str} --->')
+      return(f"MACRO osib_link(): {text} (unresolved OSIB: &lt;{link_id}&gt; Typo or missing definition with '{{ osib_anchor(...) }}' ) <!--- {warn_str} --->")
     logger.info (f"MACRO osib_link(): ==> {result_str}\n")
 #   Output
     if (not silent):
