@@ -62,7 +62,7 @@ extra:
        en:         successor
        de:         Nachfolger
      split_to_texts:
-       en:         splitted to
+       en:         split to
        de:         Aufgeteilt in
 
 markdown_extensions:

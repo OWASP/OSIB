@@ -20,14 +20,14 @@
 #!# - osib_anchor:  Adds an OSIB anchor and an object to an osib YAML structure
 #!#         Input:  osib_anchor(osib=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
 #!#                             source_id=<id inside the source>, lang=<lang>, source=<url_i18n>, name=<name_i18n>,
-#!#                             parent=<osib-id>, predecessor=<osib-id>, splitted_from=<osib.id>, merged_from=<osib-id>
+#!#                             parent=<osib-id>, predecessor=<osib-id>, split_from=<osib-id>, merged_from=[<list of osib-ids>, ... ],
 #!#                             cre=<osib-id>, aliases=[<list of aliases>, ...])
 #!#         Output: '<a id="<osib>"></a>' (HTTP-anchor), and updates in the OSIB YAML tree
 #!#
 #!# - osib_link:    Get links from a osib YAML tree, optionally find successors and add linking information bidirectionally
 #!#                 to the OSIB YAML tree
 #!#       Input:    osib_link  (link=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
-#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|ispiltted_from|...>,
+#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|split_from|...>,
 #!#                             osib=<osib>, reviewed=<datestamp(YYYYMMDD)>, status=<active|draft|...>)
 #!#       Output:   markdown link format '["<text>|<prefix><doc_osib><doc_suffix><osib_names>"](<html_link>)<speparator> ..') and/or successor/s
 #!#
@@ -82,7 +82,7 @@
 #!#        en:         successor
 #!#        de:         Nachfolger
 #!#      split_to_texts:
-#!#        en:         splitted to
+#!#        en:         split to
 #!#        de:         Aufgeteilt in
 #!#
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
@@ -104,6 +104,7 @@
 import os
 import warnings
 import logging
+import re
 from typing import Any, Dict, List, Union, NewType
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
@@ -121,10 +122,11 @@ successor_texts     = {
                         "en":           "successor"                 # English text for successors
                       }
 split_to_texts      = {
-                        "en":           "splitted to"               # English text for splitted successors
+                        "en":           "split to"                  # English text for split successors
                       }
 osib_yaml           = None
 added_yaml_data     = 0
+osib_warnings       = 0
 now                 = datetime.now()
 datestamp           = int(now.strftime("%Y%m%d"))                   # get datestamp as numeric value
 reverse_types_dict  = {                                             # list of reverse link types
@@ -133,10 +135,10 @@ reverse_types_dict  = {                                             # list of re
                         "peer":         "peer",
                         "predecessor":  "successor",
                         "merged_from":  "merged_to",
-                        "splitted_from":"splitted_to",
+                        "split_from":   "split_to",
                         "successor":    "predecessor",
                         "merged_to":    "merged_from",
-                        "splitted_to":  "splitted_to",
+                        "split_to":     "split_to",
                         "reference":    "reference"
                       }
 types_list          = list(reverse_types_dict.keys())               # define a primary order for link lists
@@ -148,12 +150,26 @@ elif debug > 0:
   logging.basicConfig(level=logging.INFO)
 
 
+## checks if a value is no dict ##
+def is_no_dict(values: Any) -> bool:
+  return (
+    values is None
+    or (not isinstance(values, dict))
+  )
+
 ## checks if a dict is empty ##
 def is_empty_dict(values: Any) -> bool:
   return (
     values is None
     or (not isinstance(values, dict))
     or values == {}
+  )
+
+## checks if a value is no list ##
+def is_no_list(values: Any) -> bool:
+  return (
+    values is None
+    or (not isinstance(values, list))
   )
 
 ## checks if a list is empty ##
@@ -177,7 +193,7 @@ def is_empty(value: Any) -> bool:
     or string.lower()   == "nan"
     or string.lower()   == "no"
     or string.lower()   == "tbd"
-    or "n/a"            in string.lower()
+    or string.lower()   == "n/a"
   )
 
 
@@ -213,6 +229,7 @@ def define_env(env):
   global yaml_file
   global successors_default
   global successor_texts
+  global osib_warnings
 
   logger.debug(f"MACRO (define_env): Environment-Config: get global default values from env.conf['extra']['osib']: {env.conf['extra']['osib']}")
   if (not is_empty(env.conf)) and ('extra' in env.conf) and ('osib' in env.conf['extra']):      # get global default values
@@ -252,6 +269,7 @@ def define_env(env):
 # (C) OWASP/The Top10-Team                                                                                                                      #
 #################################################################################################################################################
   def _create_dict(yaml={}, path=[], **args):
+    global osib_warnings
     attributes      = args.get('attributes',        {}          )   # default attribute is {}; if Attribute is a value, a dict or a list it will be added to the new object leaf
     get_attributes  = args.get('get_attributes',    False       )   # default is False; False: adds 'children' keys to the path for tree nodes, True: use original path
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
@@ -260,10 +278,14 @@ def define_env(env):
       logger.debug(f"{caller_function} _create_dict (path = '{path}', args = {args}')")
 
     if is_empty_list(path):
-      yaml = attributes
-      if debug > 3:
-        logger.debug(f"{caller_function} _create_dict(): return yaml={yaml}")
-      return(yaml[key])
+      if is_empty_dict(yaml):
+        yaml = attributes
+        if debug > 1:
+            logger.debug(f"{caller_function} _create_dict(): return yaml={yaml}")
+      else:
+        logger.warning(f"{caller_function} _create_dict(): nothing to create return yaml={yaml}")
+        osib_warnings += 1
+      return(yaml)
     key = path[0]
     path.pop(0)
     if len(path) > 0:
@@ -273,13 +295,13 @@ def define_env(env):
                     }                                               # add dict as child of the higher level
         return(_create_dict(yaml[key]['children'], path, **args))
       else:
-        yaml[key] = {}                                              # create neyt osib tree node
-        if debug > 2:                                               # big debug
+        yaml[key] = {}                                              # create next osib tree node
+        if debug > 1:                                               # big debug
           logger.debug(f"{caller_function} _create_dict(): created yaml['{key}']={yaml[key]}")
         return(_create_dict(yaml[key], path, **args))
     else:
       yaml[key] = attributes
-      if debug > 3:
+      if debug > 1:
         logger.debug(f"{caller_function} _create_dict(): return yaml['{key}']={yaml[key]}")
       return(yaml[key])
     # end if len(path)
@@ -293,6 +315,7 @@ def define_env(env):
 # (C) OWASP/The Top10-Team                                                                                                                      #
 #################################################################################################################################################
   def _lookup_yaml(yaml={}, path=[], path_item=0, **args):
+    global osib_warnings
     # Browses recursively through the yaml structure according to the path. Returns the value or the yaml branch found at the given path
     # changes the path list to aliases children if needed
     get_attributes  = args.get('get_attributes',    False       )   # default is False; False: adds 'children' keys to the path for tree nodes, True: use original path
@@ -307,13 +330,17 @@ def define_env(env):
       logger.debug(f"{caller_function} _lookup_yaml(): with yaml: '{yaml}'\n")
     if is_empty_list(path):                                         # path is empty => found
       return (yaml)
-    if is_empty_dict(yaml):                                         # yaml is empty => not found
+    if is_no_dict(yaml):                                            # yaml is no dict => not found
+      logger.warning(f"{caller_function} _lookup_yaml(): yaml is no dict: path:'{path}' not generated'\n")
+      osib_warnings += 1
       return ("")
     key=path[path_item]                                             # next key
     if not get_attributes:                                          # Osib_tree and Osib_nodes need an explicit attribute 'children' -> so we have to support this here
       if children in yaml:
         yaml = yaml[children]
       elif create:
+        if debug >2:                                                # big debug
+          logger.debug(f"   created element '{children}' for key '{key}'")
         yaml[children]  = {}                                        # add empty dict
         yaml            = yaml[children]
       else:                                                         # not found
@@ -414,6 +441,7 @@ def define_env(env):
   def _merge_links(links: list, new_links: list, **args) -> bool:
     change_update   = args.get('change_update',     "update"    )   # default change_update="update" => adds change="update"
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
+    global osib_warnings
     result          = False
 
     if debug >1:
@@ -421,6 +449,7 @@ def define_env(env):
     for new_link_item in new_links:
       if ('type' not in new_link_item) or ('link' not in new_link_item):
         logger.warning(f">>> {caller_function} _merge_links(): 'type' or 'link' keys are missing in link '{new_link_item}'")
+        osib_warnings += 1
         continue                                        # next new_link_item
       found_link = False
       for obj_link_item in links:
@@ -457,6 +486,7 @@ def define_env(env):
     path            = args.get('path',              ""          )   # default path is ""
     path_type       = args.get('path_type',         ""          )   # default path_type is ""
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
+    global osib_warnings
     path_list       = []
 
     if not is_empty(path):
@@ -497,6 +527,7 @@ def define_env(env):
     caller_function = args.get('caller_function',   ""          )   # default caller_function is "", used for logging
     result          = False
     global added_yaml_data                                          # use global counter for added_yaml_data
+    global osib_warnings
 
     if debug >2:
       logger.debug (f"_add_reverse_links: args       = {args}")
@@ -511,9 +542,9 @@ def define_env(env):
             reverse_path_organization = reverse_path [1:2]          # [osib, organisation] is obligatory: check here for organization
             reverse_path_suffix       = reverse_path [2:]           # optional suffix, e.g. [<standard|project>, version, <local structure ...>]
             reverse_organization_obj  = _lookup_yaml (osib_yaml, reverse_path_organization, 0, create = create_organization, caller_function=f"{caller_function} _add_reverse_links:")
-            if not is_empty_dict(reverse_organization_obj):         # 'osib.organization' found
+            if not is_no_dict(reverse_organization_obj):            # 'osib.organization' found
               if debug >2:
-                logger.debug(f"  --> {caller_function} _add_reverse_links: found parent orgaization '{reverse_path[:2]}'")
+                logger.debug(f"  --> {caller_function} _add_reverse_links: found parent organization '{reverse_path[:2]}'")
               add_reverse_link_dict = {
                 'link':        osib_id,                             # reverse link
                 'type':        reverse_types_dict[link_item['type']],
@@ -522,7 +553,7 @@ def define_env(env):
                 'change':      change_new
               }
               reverse_osib_obj = _lookup_yaml (reverse_organization_obj, reverse_path_suffix, 0, create = True, caller_function=f"{caller_function} _add_reverse_links:")
-              if not is_empty_dict (reverse_osib_obj):
+              if not is_no_dict (reverse_osib_obj):
                 if debug >3:
                     logger.debug (f"  --> {caller_function} _add_reverse_links: found linked item {reverse_path}: reverse_osib_obj = {reverse_osib_obj}")
                 elif debug >1:
@@ -564,12 +595,39 @@ def define_env(env):
                 logger.debug(f"    link_item['link'](normalized): {link_item['link']}")
               # end normalize
             else:
-              logger.warning(f">>> {caller_function} _add_reverse_links: WARNING at osib '{reverse_path}': '{reverse_osib_obj}' neither found nor created")
+              logger.warning(f">>> {caller_function} _add_reverse_links: WARNING at osib '{reverse_path}': reverse_path_organization '{reverse_path_organization}' neither found nor created")
+              osib_warnings += 1
           # end if not is_empty_list(reverse_path)
         # end if link_item['type']
       # end for link_item
     # end if osib_id
     return (result)
+
+
+#################################################################################################################################################
+# _normalize_osib:                                                                                                                              #
+#     Internal function to normalize an osib path: To be used for the variables osib, link and alias-element                                    #
+#     (lower a string, replace one or more whitespaces by space, remove leading and trailing whitespaces)                                       #
+# (C) OWASP/The Top10-Team                                                                                                                      #
+#################################################################################################################################################
+  def _normalize_osib(osib, **args) -> str:
+    caller_function     = args.get('caller_function',       ""          )   # default caller_function is "", used for logging
+    global osib_warnings
+
+    if debug >3:                                                    # debug
+      logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}'")
+    if isinstance(osib, str):
+      osib_new = re.sub (r"_", " ", osib)                             # replace underline by space
+      osib_new = re.sub (r"\s+", " ", osib_new)                       # replace one or more whitespaces by space
+      osib_new = osib_new.lower().strip()                             # lower all characters, remove all leading anid trailing spaces
+      if debug >1:                                                    # debug
+        logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> '{osib_new}'")
+      return(osib_new)
+    else:
+      if debug >1:                                                    # debug
+        logger.debug(f"    {caller_function} _normalize_osib: osib '{osib}' -> is no string: nothing to do")
+      return(osib)
+  # end _normalize_osib_
 
 
 #################################################################################################################################################
@@ -583,6 +641,7 @@ def define_env(env):
     source              = ""
     source_name         = ""
     default_source_dict = None
+    global osib_warnings
 
     if debug >1:                                                    # debug
       logger.debug(f"{caller_function} _get_named_source: osib_obj '{osib_obj}', args = {args}")
@@ -597,6 +656,7 @@ def define_env(env):
         source = default_source_dict['source']
       else:
         logger.warning(f">>> {caller_function} _get_named_source(): Warning any source url found neither for lang '{lang}' nor for default_lang '{default_lang}'; osib_obj: '{osib_obj}'")
+        osib_warnings += 1
     if (not is_empty_dict(source_dict)) and ('name' in source_dict):
       source_name = source_dict['name']
     else:
@@ -628,6 +688,7 @@ def define_env(env):
     caller_function:str = args.get('caller_function',       ""          )  # default caller_function is "", used for logging
     found               = False
     found_links         = []
+    global osib_warnings
 
     if debug >2:                                                    # big debug
       logger.debug(f"{caller_function} _get_latest_links(): args: '{args}'")
@@ -641,12 +702,13 @@ def define_env(env):
       return(False)                                                 # is empty or not found
     for i in range(len(links)-1, -1, -1):                           # backward iteration to 0 (if len > 1)
       link_item = links[i]
-      if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "splitted_to" ]):
-        link_id      = link_item['link'].lower()
+      if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "split_to" ]):
+        link_id      = _normalize_osib(link_item['link'], caller_function="_get_latest_links")
         link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=f"{caller_function} _get_latest_links:")
         if is_empty_list(link_id_path):
           err_str = f">>> WARNING in {caller_function} _get_latest_links(): successor link type '{link_item['type']}': path is no osib-path: '{link_id}'. Fall back to previous successor."
           logger.warning(err_str)
+          osib_warnings += 1
           if debug >0:                                              # debug
             logger.debug(f"{caller_function} _get_latest_links():  --> return found='False'")
           return(False)                                             # The previous link is the latest valid successor
@@ -654,28 +716,29 @@ def define_env(env):
         ### Mutate link_item
         if debug >2:                                                # big debug=
           logger.debug(f"  {caller_function} _get_latest_links(): link_item['link'](original):   {link_item['link']}")
-        link_item['link'] = '.'.join(map(str,link_id_path))         # update the link item by the normalized path
+        link_item['link'] = '.'.join(map(str,link_id_path))         # update the link item by the normalized path ### TBD: check if this is too much
         if debug >2:                                                # big debug
           logger.debug(f"  {caller_function} _get_latest_links(): link_item['link'](normalized): {link_item['link']}")
         ### End Mutate
         if is_empty_dict(osib_link_obj):                            # did not find the successor's tree node
           err_str = f">>> WARNING in {caller_function} _get_latest_links(): successor link type '{link_item['type']}': is no valid osib tree node: '{link_id}'. Fall back to previous successor."
           logger.warning(err_str)
-          if debug >0:                                              # debug
+          osib_warnings += 1
+          if debug >1:                                              # debug
             logger.debug(f"{caller_function} _get_latest_links():  --> return found='False'")
           return(False)                                             # The previous link is the latest valid successor
-        if debug >1:                                                # debug
+        if debug >2:                                                # debug
           logger.debug(f"{caller_function} _get_latest_links():  --> found: '{osib_link_obj}' --> try to get next successor")
         result          = _get_latest_links(osib_obj=osib_link_obj, latest_links=latest_links, caller_function=caller_function)
         if not result:                                              # the susseccor link is not valid
           named_source_dict = _get_named_source(osib_link_obj, lang=lang, caller_function=f"{caller_function} _get_latest_links:")
           if (not is_empty_dict (named_source_dict)) and ('source' in named_source_dict) and (not is_empty(named_source_dict['source'])):   # link has a source
             found_links.append(link_item)                           # collect all found links to a temporary list
-            if debug >2:                                            # big debug
+            if debug >3:                                            # big debug
               logger.debug(f"{caller_function} _get_latest_links():  --> found_link -> add '{link_item}' to temp list.")
         else:
           found = True                                              # found links of sussessors already
-        if link_item['type'] != 'splitted_to':                      # no more successors expected
+        if link_item['type'] != 'split_to':                         # no more successors expected
           break                                                     # exit for i
       # end if ('link' in link_item) and ...
     # end for i
@@ -686,7 +749,8 @@ def define_env(env):
       _merge_links(latest_links, found_links)
       return(True)
     else:                                                           # did not find any successors
-      logger.debug(f"{caller_function} _get_latest_links():  --> return found='{found}'")
+      if debug >1:                                                  # debug
+        logger.debug(f"{caller_function} _get_latest_links():  --> return found='{found}'")
       return(found)
   # end:_get_latest_links
 
@@ -703,6 +767,7 @@ def define_env(env):
   def osib_anchor(**args):
     global added_yaml_data                                              # use global counter for added_yaml_data
     global osib_yaml                                                    # use global osib_yaml
+    global osib_warnings
 
     osib_id         = args.get('osib',              "osib"      )       # default osib is "osib"
     create_organization = args.get('create_organization', False )       # default is False
@@ -728,8 +793,9 @@ def define_env(env):
     reverse_status  = args.get('reverse_status',    "automatically_generated")
     silent          = args.get('silent',            False       )       # default is "" -> no output if any other value is set
     result_str      = ""
-    help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", create_organization=False, source="https://owasp.org/Top10/...", name="OWASP Top10", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osib-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from="<merged_from>", split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
+    help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", create_organization=False, source="https://owasp.org/Top10/...", aliases=\["<osib-list>", ...\], name="<page/requirement/article name>", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osib-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from=\["<osib-list>", ...\], split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
     # end parameters
+    osib_id         = _normalize_osib(osib_id, caller_function="osib_anchor")
 
     logger.info (f"Call MACRO osib_anchor():\n  args       = {args}")
     if debug > 2:                                                   # big_debug
@@ -738,39 +804,58 @@ def define_env(env):
                                                  'categories', 'maturity', 'protection_need', 'cre', 'status', 'change_new', 'change_update', 'reviewed',
                                                  'predecessor', 'merged_from', 'split_from', 'no_reverse', 'reverse_status', 'silent']]
     if not is_empty_list(invalid_keys):
-      err_str=f">>> MACRO osib_anchor(): invalid key(s) '{invalid_keys}' in args '{args}' ignored; {help_str}"
+      err_str=f">>> MACRO osib_anchor(): invalid key(s) '{invalid_keys}' in args '{args}' ignored;\n{help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
 
     invalid_values = [k for k in args if (not args[k]) or (args[k] is None)]
     if not is_empty_list(invalid_values):
-      err_str=f">>> MACRO osib_anchor(): undefined values(s) in keys '{invalid_values}' of args '{args}'; {help_str}"
+      err_str=f">>> MACRO osib_anchor(): undefined values(s) in keys '{invalid_values}' of args '{args}';\n{help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
       return (f"<!--- {err_str} --->")
-
+    if is_no_list(merged_from):
+      err_str=f">>> MACRO osib_anchor(): 'merged_from' needs to be a list [<osib-list>, ...];\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
+      return (f"<!--- {err_str} --->")
+    if is_no_list(aliases):
+      err_str=f">>> MACRO osib_anchor(): 'aliases' needs to be a list [<osib-list>, ...];\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
+      return (f"<!--- {err_str} --->")
     if not is_empty_dict(env.page):                                 # get page information from macro plugin
       page = env.page
     else:
       page = "--unknown--"
     logger.debug(f"Page: '{env.page}'")
 
-    if is_empty(osib_id) or is_empty(source):                       # is an empty string
-      err_str = f"MACRO osib_anchor(): 'osib' id and/or 'source' are missing or empty: {help_str}"
+    if is_empty(osib_id):                                           # is an empty string
+      err_str = f"MACRO osib_anchor(): 'osib' id is missing or empty: name='{name}', source='{source}'.\n{help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
+      return(f'<!--- {err_str} --->')
+    if is_empty(source):                                            # is an empty string
+      err_str = f"MACRO osib_anchor(): 'source' is missing or empty: osib='{osib_id}', name='{name}'.\n{help_str}"
+      logger.warning(err_str)
+      osib_warnings += 1
       return(f'<!--- {err_str} --->')
     if not osib_yaml:                                               # global osib_yaml is not defined
       osib_yaml = read_osib_yaml(yaml_file)
     id_path = _get_path_list(path=osib_id, path_type="osib_id", caller_function=f"MACRO osib_anchor():")
     if is_empty_list(id_path):
-      err_str = f"MACRO osib_anchor(): no osib path '{osib_id}' in OSIB YAML file. {help_str}"
+      err_str = f"MACRO osib_anchor(): no osib path '{osib_id}' in OSIB YAML file.\n{help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
       return(f'<!--- {err_str} --->')
     # check if OSIB Object exists
     id_path_organization = id_path [1:2]                            # [osib, organisation] is obligatory: check here for organization
     id_path_suffix       = id_path [2:]                             # optional suffix, e.g. [<standard|project>, version, <local structure ...>]
     organization_obj     = _lookup_yaml (osib_yaml, id_path_organization, 0, create = create_organization, caller_function=f"MACRO osib_anchor():")
-    if is_empty_dict(organization_obj):  # no 'osib.organization' found
+    if is_no_dict(organization_obj):                                # no 'osib.organization' found nor created
       err_str = f"MACRO osib_anchor(): Organization '{id_path[:2]}' not found in OSIB YAML file. {help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
       return(f'<!--- {err_str} --->')
     if debug >2:                                                    # big_debug
       logger.debug(f"MACRO osib_anchor():   --> found orgaization '{id_path[:2]}'")
@@ -798,10 +883,14 @@ def define_env(env):
       attributes_dict['sources_i18n']                         = { lang: {} }
       if not is_empty(name):
         attributes_dict['sources_i18n'][lang]['name']         = name
+      else:
+        logger.warning(f"MACRO osib_anchor(): osib-item '{id_path}': lang '{lang}': name is missing; {help_str}")
+        osib_warnings += 1
       if not is_empty(source):
         attributes_dict['sources_i18n'][lang]['source']       = source                          # url
       else:
         logger.warning(f"MACRO osib_anchor(): osib-item '{id_path}': lang '{lang}': source url is missing; {help_str}")
+        osib_warnings += 1
       if not is_empty(description):
         attributes_dict['sources_i18n'][lang]['description']  = description
       if not is_empty(status):
@@ -829,15 +918,17 @@ def define_env(env):
                                                                    'change':    change_new
                                                                }
                                      )
-    elif not is_empty(merged_from):                                                             # merged_from (list)
-      attributes_dict['links'].append(                         {
-                                                                   'link':      merged_from,
+    elif not is_empty_list(merged_from):                                                        # merged_from (list)
+      for merged_item in merged_from:
+        attributes_dict['links'].append(                       {
+                                                                   'link':      merged_item,
                                                                    'type':      "merged_from",
                                                                    'status':    status,
                                                                    'reviewed':  reviewed,
                                                                    'change':    change_new
                                                                }
-                                     )
+                                       )
+      # End for merged_item
     elif not is_empty(split_from):                                                              # add split_from
       attributes_dict['links'].append(                         {
                                                                    'link':      split_from,
@@ -899,7 +990,7 @@ def define_env(env):
       # end if no_reverse
       # copy or update aliases
       if not is_empty_list(aliases):
-        aliases                                   = [a.lower() for a in aliases]    # lower all aliases
+        aliases                                   = [_normalize_osib(a, caller_function="osib_anchor(aliases)") for a in aliases]    # normalize all aliases
         if debug >3:                                                # big_debug
           logger.debug(f"MACRO osib_anchor(): add aliases = {aliases}")
         if 'aliases' not in osib_obj:
@@ -908,7 +999,7 @@ def define_env(env):
             logger.debug(f"MACRO osib_anchor(): created aliases = {aliases}")
         else:
           for alias in aliases:
-            if (alias not in osib_obj['aliases']):
+            if (alias not in osib_obj['aliases']) and (alias != reverse_path[-1]):                      # alias is not in the alias list and not the actual (normalized) OSIB element
               osib_obj['aliases'].append(alias)
               if debug >3:                                          # huge_debug
                 logger.debug(f"MACRO osib_anchor(): add alias = {alias}")
@@ -973,9 +1064,10 @@ def define_env(env):
       # end update or copy attributes
     else:
       logger.warning(f'>>> WARNING at osib \'{id_path}\': {osib_obj} neither found nor created')
+      osib_warnings += 1
     result_str = "<a id=\"" + osib_id + "\"></a>"                   # html anchor
     added_yaml_data += 1                                            # count added data to yaml (potentially)
-    logger.info (f"==> osib_anchor(): {result_str},\n                    osib_obj = {osib_obj}\n")
+    logger.info (f"==> osib_anchor(): {result_str},\n                    osib_obj '{osib_id}' = {osib_obj}\n")
     if debug >3:                                                    # huge debug
       logger.debug(f"==> osib_anchor(): osib_yaml: '{osib_yaml}\n====================================================\n")
     if not silent:
@@ -994,24 +1086,27 @@ def define_env(env):
   # (C) OWASP/The Top10-Team, 2021                                                                                                              #
   ###############################################################################################################################################
   def osib_link(**args):
-    link_id         = args.get('link',          ""          )       # default link is ""
+    link_id         = args.get('link',          ""          )       # osib link, default link is ""
+    link_id         = _normalize_osib(link_id, caller_function="osib_link(link_id)")
     create_organzation = args.get('create_organization',  False )   # default is False
     lang            = args.get('lang',          default_lang)       # default language is <default_language>
-    latest          = int(args.get('latest',    0           ))      # default for latest = 0;
+    latest          = int(args.get('latest',    latest_default))    # latest_default is a global variable
                                                                     #         0: Get link_id, do not follow links to latest versions
                                                                     #         1: Log a warning, if successor(s) of link_id exist
                                                                     #         2: Add the latest version(s), if successor(s) exist, log an info
                                                                     #         3: show only the latest version, if *one* successor exist.
-                                                                    #            Add latest versions if more (splitted) splitted veresions exist (see 2), log an info
+                                                                    #            Add latest versions if more split versions exist (see 2), log an info
     text            = args.get('text',          ""          )       # default text is "" -> use prefix, doc, doc_suffix, link_names
     prefix          = args.get('prefix',        ""          )       # default prefix = ""
     separator       = args.get('separator',     ", "        )       # default separator = ""
-    doc_default     ='.'.join(map(str,link_id.lower().split(".")[0:3]))
+    doc_default     ='.'.join(map(str,link_id.split(".")[0:3]))
                                                                     # default doc is the links 3rd level path element, e.g. osib.owasp.top10
-    doc             = args.get('doc',           doc_default )       # default doc = ""
+    doc             = args.get('doc',           doc_default )       # doc osib link, default doc = ""
+    doc             = _normalize_osib(doc, caller_function="osib_link(doc)")
     doc_suffix      = args.get('doc_suffix',    ": "        )       # default doc_suffix = ": "
     osib            = args.get('osib',          ""          )       # default osib = ""; If osib=<osib> is an existing osib it adds the requested link bidirectionally
                                                                     #                    to the source and destination subtrees to a copy the yaml structure if it has not been added before.
+    osib            = _normalize_osib(osib, caller_function="osib_link(osib)")
     type            = args.get('type',          "reference" )       # default type = "reference"; Adds the link to 'osib' as an reference; adds an reverce link according the reverse_types_dict)
     status          = args.get('status',        "active"    )       # default status="active" => adds link status="active"
     change_new      = args.get('change_new',    "new"       )       # default change_new="new"       => adds change="new"
@@ -1021,6 +1116,7 @@ def define_env(env):
     reviewed        = args.get('reviewed',      datestamp   )       # default reviewed=<datestamp>
     no_reverse      = args.get('no_reverse',    False       )       # default no_reverse = False; True: does not generate reverse links if any other value is set
     silent          = args.get('silent',        False       )       # default is False -> output; True: no output
+    global osib_warnings
 
     result_str      = ""
     doc_str         = ""
@@ -1036,11 +1132,13 @@ def define_env(env):
     if not is_empty_list(invalid_keys):
       err_str=f">>> MACRO osib_link(): invalid key(s) '{invalid_keys}' in args '{args}' ignored; {help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
 
     invalid_values = [k for k in args if (args[k] is None)]
     if not is_empty_list(invalid_values):
       err_str=f">>> MACRO osib_link(): undefined values(s) in keys '{invalid_values}' of args '{args}'; {help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
       return (f"<!--- {err_str} --->")
 
     if not is_empty_dict(env.page):                                 # get page information from macro plugin
@@ -1054,18 +1152,21 @@ def define_env(env):
     if is_empty (link_id):
       err_str = f">>> Error in MACRO osib_link(): osib ID is missing or empty: {help_str}"
       logger.warning (err_str)
+      osib_warnings += 1
       return(f'<!--- {err_str} --->')
-    link_id_path = _get_path_list(path=link_id.lower(), path_type="link_id", caller_function=caller_function)
+    link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=caller_function)
     if is_empty_list(link_id_path):
       err_str = f">>> Error in MACRO osib_link(): path is no osib path '{link_id}': {help_str}"
       logger.warning(err_str)
+      osib_warnings += 1
       return(f'<!--- {err_str} --->')
 #   get doc
-    if doc and doc != "":
-      doc_path   = _get_path_list(path=doc.lower(), path_type="doc", caller_function=caller_function)
+    if doc and (doc != "") and (len(link_id_path) >3):              # doc needs to be defined, not empty, and the link ID needs to be at least a path with depth 4
+      doc_path   = _get_path_list(path=doc, path_type="doc", caller_function=caller_function)
       if is_empty_list(doc_path):
         err_str = f">>> Warning in MACRO osib_link(): doc path is no osib-path: '{doc}': '{help_str}'."
         logger.warning(err_str)
+        osib_warnings += 1
       else:
         osib_doc_obj  = _lookup_yaml (osib_yaml, doc_path, 1)
         doc_str       = _lookup_yaml (osib_doc_obj, ['attributes', 'sources_i18n', lang, 'name'], 0, get_attributes = True)
@@ -1097,12 +1198,13 @@ def define_env(env):
         else:
           warn_str = f">>> runtime warning: osib_link(): 'link' is empty or not in yaml object '{link_id}' -> source: {named_source_dict}, language(s): {unique([lang, default_lang])}."
           logger.warning(warn_str)
+          osib_warnings += 1
         if ('source_name' in named_source_dict) and (not is_empty(named_source_dict['source_name'])):         # link has a source_name
           link_name = named_source_dict['source_name']              # error handling if link_name is used and not overwritten, later
       # check for successor(s):
       if (latest > 0) and (_get_latest_links(osib_obj=osib_link_obj, latest_links=latest_links, lang=lang, caller_function=caller_function)):
         successor_str        = ""
-        if len(latest_links) > 1:                                   # more than one successor: splitted_to
+        if len(latest_links) > 1:                                   # more than one successor: split_to
           if lang in split_to_texts:
             successor_str   += split_to_texts[lang]
           elif default_lang in split_to_texts:
@@ -1118,7 +1220,7 @@ def define_env(env):
               if not is_empty_list(successor_id_path):
                 successor_obj   = _lookup_yaml (osib_yaml, successor_id_path, 1)
                 ### Mutate successor_item
-                successor_item['link'] = '.'.join(map(str,successor_id_path))                          # update the link item by the normalized path
+                successor_item['link'] = '.'.join(map(str,successor_id_path)).lower()                   # update the link item by the normalized path
                 if debug >2:                                        # big debug
                   logger.debug(f"    successor_item['link'](normalized): {successor_item['link']}")
                 ### End Mutate
@@ -1131,6 +1233,7 @@ def define_env(env):
                   else:
                     warn_str = f">>> runtime warning: osib_link(): 'successor link' is empty or not in yaml object '{successor_id}'"
                     logger.warning(warn_str)
+                    osib_warnings += 1
                   if (len(latest_links) <= 3):                        # add up to 3 successor names
                     if ('source_name' in named_source_dict) and (not is_empty(named_source_dict['source_name'])): # link has a source_name
                       successor_name = f": {named_source_dict['source_name']}"                           # error handling if link_name is used and not overwritten, later
@@ -1139,6 +1242,7 @@ def define_env(env):
                 else:
                   warn_str = f">>> runtime warning: osib_link(): 'named successor link' is empty or not in yaml object '{successor_id}'"
                   logger.warning(warn_str)
+                  osib_warnings += 1
                 if i > 1:
                   successor_str  += separator
                 successor_str  += f"[{str(i)}{successor_name}]({successor_link})"               # markdown link to successor
@@ -1150,8 +1254,8 @@ def define_env(env):
             successor_id_path   = _get_path_list(path=successor_id, path_type="successor_id", caller_function=caller_function)
             if not is_empty_list(successor_id_path):
               successor_obj     = _lookup_yaml (osib_yaml, successor_id_path, 1)
-              ### Mutate latest_links 
-              latest_links[0]['link'] = '.'.join(map(str,successor_id_path))                          # update the link item by the normalized path
+              ### Mutate latest_links; TBD: Check if this is needed or too much
+              latest_links[0]['link'] = '.'.join(map(str,successor_id_path))                    # update the link item by the normalized path
               if debug >2:                                          # big debug
                 logger.debug(f"    latest_links[0]['link'](normalized): {latest_links[0]['link']}")
               ### End Mutate
@@ -1164,6 +1268,7 @@ def define_env(env):
                 else:
                   warn_str = f">>> runtime warning: osib_link(): 'successor link' is empty or not in yaml object '{successor_id}'"
                   logger.warning(warn_str)
+                  osib_warnings += 1
                 if ('source_name' in named_source_dict) and (not is_empty(named_source_dict['source_name'])):  # link has a source_name
                   successor_name = named_source_dict['source_name'] # error handling if link_name is used and not overwritten, later
                 else:
@@ -1171,6 +1276,7 @@ def define_env(env):
               else:
                 warn_str = f">>> runtime warning: osib_link(): 'named successor link' is empty or not in yaml object '{successor_id}'"
                 logger.warning(warn_str)
+                osib_warnings += 1
             if (latest <= 2):                                       # get the latest links
               successor_str     = "["
               if lang in successor_texts:
@@ -1188,6 +1294,7 @@ def define_env(env):
               logger.info(f"MACRO osib_link(): replace link to '{link_id}' by source url to successor '{successor_id}'")
         else:
           logger.warning(f"MACRO osib_link(): received no (valid) successors for {link_id}")
+          osib_warnings += 1
       elif latest == 0:
         logger.debug(f"  --> latest=0: '{link_id}' has been not checked for successors")
       else:
@@ -1201,11 +1308,19 @@ def define_env(env):
         if is_empty(link_name):
           warn_str = f">>> runtime warning: 'name' is empty or not in yaml object '{link_id}' -> source: {named_source_dict}, language(s): {unique([lang, default_lang])}. Using 'link_name' = '{link}' instead."
           logger.warning(warn_str)
-          link_name = link
-        result_str = "[" + prefix + doc_str + link_name + "](" + link +")"
+          osib_warnings += 1
+          if not is_empty(link):
+            link_name = link
+          else:
+            link_name = (f"{text} (OSIB: &lt;{link_id}&gt;: 'name' and 'source' are not defined. Verify 'osib.yml' and/or '{{ osib_anchor(...) }}', please)")
+        if not is_empty(link):
+          result_str = "[" + prefix + doc_str + link_name + "](" + link +")"
+        else:
+          result_str = "MACRO osib_link(): " + prefix + doc_str + link_name
       if (latest <=1) and (not is_empty(successor_str)):            # do not add successors, 1: log only a warning
         warn_str = f">>> warning: '{link_id}' has successors: '{successor_str}', please check you linked osib objects or change parameter 'latest=2' or 3."
         logger.warning(warn_str)
+        osib_warnings += 1
         successor_str = ""
       elif not is_empty(successor_str):
         result_str += f"{separator}{successor_str}"
@@ -1215,24 +1330,26 @@ def define_env(env):
         if osib.endswith(".attributes.links"):                      # 'attributes.links' must not be included in the path
           warn_str = ">>> runtime error: osib_link(): Do not add '.attributes.links' to parameter 'osib=...'!"
           logger.warning(warn_str)
+          osib_warnings += 1
         osib_path    = _get_path_list(path=osib, path_type="osib", caller_function=caller_function)
         if is_empty_list(osib_path):                                # was 'doc_path' (ERROR)
           err_str = ">>> error in MACRO osib_link(): add to path is no osib-path: '{osib}'."
           logger.warning(err_str)
+          osib_warnings += 1
         else:
           osib_obj   = _lookup_yaml (osib_yaml, osib_path, 1)       # normalizes osib_path also to aliased children
           # Mutate args['osib']
-          if debug > 1:                                             # big debug=2!
+          if debug > 2:                                             # big debug
             logger.debug(f"    args['osib'](raw):        {args['osib']}")
             logger.debug(f"    osib_path[] =             {osib_path}")
           osib = '.'.join(map(str,osib_path))                       # update the osib argument by the normalized path
           args['osib'] = osib
-          if debug > 1:                                             # big debug=2!
+          if debug > 2:                                             # big debug
             logger.debug(f"    args['osib'](normalized): {args['osib']}")
           # End Mutate osib
           # update or add links
           if osib_obj and osib_obj != "":                           # found osib object
-            if debug > 0:                                           # debug
+            if debug > 2:                                           # big debug
               logger.debug(f"  osib_obj={osib_obj}\n")
             osib_links = _lookup_yaml (osib_obj, ["attributes", "links"], 0, get_attributes = True, create = True, caller_function=caller_function)
             add_link_dict = {
@@ -1263,7 +1380,8 @@ def define_env(env):
     else: # osib_obj
       warn_str = f">>> MACRO osib_link(): runtime error:  did not find yaml object '{link_id}'"
       logger.warning(warn_str)
-      return(f'{text} (unresolved OSIB-Link: &lt;{link_id}&gt;) <!--- {warn_str} --->')
+      osib_warnings += 1
+      return(f"MACRO osib_link(): {text} (unresolved OSIB: &lt;{link_id}&gt; Typo or missing definition with '{{ osib_anchor(...) }}' ) <!--- {warn_str} --->")
     logger.info (f"MACRO osib_link(): ==> {result_str}\n")
 #   Output
     if (not silent):
@@ -1283,8 +1401,11 @@ def on_post_build(env):
   "Post-build actions"
 
   global added_yaml_data
+  global osib_warnings
   global datestamp
-  logger.info (f"MACRO (post-build): Call On Post Build Action: Write added/changed yaml data to dir '{export_dir}'.")
+  logger.info (f"OSIB-MACRO (post-build): Call On Post Build Action: Write added/changed yaml data to dir '{export_dir}'.")
+  logger.info (f" -> Number of runtime WARNINGs: {osib_warnings}.")
+  osib_warnings         = 0                                         # reset counter
   if added_yaml_data >0:                                            # new data added
     # site_dir    = env.conf['site_dir']
     now                 = datetime.now()
@@ -1294,9 +1415,10 @@ def on_post_build(env):
       logger.info(f"Create directory '{export_dir}').")
       os.mkdir(export_dir,mode = 0o755)
     file_name   = export_dir+"/osib_export_"+timestamp+".yml"
-    if debug >2:                                                    # big debug
+    if debug >3:                                                    # big debug
       logger.debug(f" -> DATA:\n{yaml.dump(osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n\n")
     logger.info(f"Write OSIB-yaml file '{file_name}' including up to {added_yaml_data} new or changed attributes.")
+    added_yaml_data     = 0                                         # reset counter
     with open(file_name, 'w') as fout:
       data = yaml.dump(osib_yaml, fout, sort_keys=False, indent=2, default_flow_style=False)
     added_yaml_data = 0                                             # reset counter for new data
