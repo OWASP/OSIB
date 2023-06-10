@@ -19,14 +19,14 @@ Tools:<br>
 #!# - osib_anchor:  Adds an OSIB anchor and an object to an osib YAML structure
 #!#         Input:  osib_anchor(osib=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
 #!#                             source_id=<id inside the source>, lang=<lang>, source=<url_i18n>, name=<name_i18n>,
-#!#                             parent=<osib-id>, predecessor=<osib-id>, splitted_from=<osib.id>, merged_from=<osib-id>
+#!#                             parent=<osib-id>, predecessor=<osib-id>, split_from=<osib.id>, merged_from=[<list of osib-ids>, ... ],
 #!#                             cre=<osib-id>, aliases=[<list of aliases>, ...])
 #!#         Output: '<a id="<osib>"></a>' (HTTP-anchor), and updates in the OSIB YAML tree
 #!#
 #!# - osib_link:    Get links from a osib YAML tree, optionally find successors and add linking information bidirectionally
 #!#                 to the OSIB YAML tree
 #!#       Input:    osib_link  (link=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
-#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|ispiltted_from|...>,
+#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|split_from|...>,
 #!#                             osib=<osib>, reviewed=<datestamp(YYYYMMDD)>, status=<active|draft|...>)
 #!#       Output:   markdown link format '["<text>|<prefix><doc_osib><doc_suffix><osib_names>"](<html_link>)<speparator> ..') and/or successor/s
 #!#

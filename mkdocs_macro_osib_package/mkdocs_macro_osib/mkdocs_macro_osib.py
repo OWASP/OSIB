@@ -20,14 +20,14 @@
 #!# - osib_anchor:  Adds an OSIB anchor and an object to an osib YAML structure
 #!#         Input:  osib_anchor(osib=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
 #!#                             source_id=<id inside the source>, lang=<lang>, source=<url_i18n>, name=<name_i18n>,
-#!#                             parent=<osib-id>, predecessor=<osib-id>, splitted_from=<osib.id>, merged_from=<osib-id>
+#!#                             parent=<osib-id>, predecessor=<osib-id>, split_from=<osib-id>, merged_from=[<list of osib-ids>, ... ],
 #!#                             cre=<osib-id>, aliases=[<list of aliases>, ...])
 #!#         Output: '<a id="<osib>"></a>' (HTTP-anchor), and updates in the OSIB YAML tree
 #!#
 #!# - osib_link:    Get links from a osib YAML tree, optionally find successors and add linking information bidirectionally
 #!#                 to the OSIB YAML tree
 #!#       Input:    osib_link  (link=osib.<organization>.<project|standard>.<version(without dots '.')>.<internal structure>, create_organization=False
-#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|ispiltted_from|...>,
+#!#                             doc=<osib>, type=<reference|predecessor|successor|merged_from|split_from|...>,
 #!#                             osib=<osib>, reviewed=<datestamp(YYYYMMDD)>, status=<active|draft|...>)
 #!#       Output:   markdown link format '["<text>|<prefix><doc_osib><doc_suffix><osib_names>"](<html_link>)<speparator> ..') and/or successor/s
 #!#
@@ -82,7 +82,7 @@
 #!#        en:         successor
 #!#        de:         Nachfolger
 #!#      split_to_texts:
-#!#        en:         splitted to
+#!#        en:         split to
 #!#        de:         Aufgeteilt in
 #!#
 #!# ------------------------------------------------------------------------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ successor_texts     = {
                         "en":           "successor"                 # English text for successors
                       }
 split_to_texts      = {
-                        "en":           "splitted to"               # English text for splitted successors
+                        "en":           "split to"                  # English text for split successors
                       }
 osib_yaml           = None
 added_yaml_data     = 0
@@ -134,10 +134,10 @@ reverse_types_dict  = {                                             # list of re
                         "peer":         "peer",
                         "predecessor":  "successor",
                         "merged_from":  "merged_to",
-                        "splitted_from":"splitted_to",
+                        "split_from":   "split_to",
                         "successor":    "predecessor",
                         "merged_to":    "merged_from",
-                        "splitted_to":  "splitted_to",
+                        "split_to":     "split_to",
                         "reference":    "reference"
                       }
 types_list          = list(reverse_types_dict.keys())               # define a primary order for link lists
@@ -661,7 +661,7 @@ def define_env(env):
       return(False)                                                 # is empty or not found
     for i in range(len(links)-1, -1, -1):                           # backward iteration to 0 (if len > 1)
       link_item = links[i]
-      if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "splitted_to" ]):
+      if ('link' in link_item) and ('type' in link_item) and (link_item['type'] in ['successor', "merged_to", "split_to" ]):
         link_id      = _normalize_osib(link_item['link'], caller_function="_get_latest_links")
         link_id_path = _get_path_list(path=link_id, path_type="link_id", caller_function=f"{caller_function} _get_latest_links:")
         if is_empty_list(link_id_path):
@@ -695,7 +695,7 @@ def define_env(env):
               logger.debug(f"{caller_function} _get_latest_links():  --> found_link -> add '{link_item}' to temp list.")
         else:
           found = True                                              # found links of sussessors already
-        if link_item['type'] != 'splitted_to':                      # no more successors expected
+        if link_item['type'] != 'split_to':                         # no more successors expected
           break                                                     # exit for i
       # end if ('link' in link_item) and ...
     # end for i
@@ -748,7 +748,7 @@ def define_env(env):
     reverse_status  = args.get('reverse_status',    "automatically_generated")
     silent          = args.get('silent',            False       )       # default is "" -> no output if any other value is set
     result_str      = ""
-    help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", create_organization=False, source="https://owasp.org/Top10/...", name="OWASP Top10", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osib-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from="<merged_from>", split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
+    help_str        = f'use osib_anchor(osib="osib.<organization>.<project|standard>.version(without dots \'.\')>.<internal structure>", create_organization=False, source="https://owasp.org/Top10/...", aliases=\["<osib-list>", ...\], name="<page/requirement/article name>", description="<description>", categories=[<category, ...], matutity="<maturity>", protection_need="<protection_need>", cre="<osib-id>" status="<status>", lang="<lang>", source="<source>", parent="<osib-id>", predecessor="<osib-id>", merged_from=\["<osib-list>", ...\], split_from="<split_from>", no_reverse=False, reverse_status="<reverse_status>", silent=False...'
     # end parameters
     osib_id         = _normalize_osib(osib_id, caller_function="osib_anchor")
 
@@ -850,15 +850,17 @@ def define_env(env):
                                                                    'change':    change_new
                                                                }
                                      )
-    elif not is_empty(merged_from):                                                             # merged_from (list)
-      attributes_dict['links'].append(                         {
-                                                                   'link':      merged_from,
+    elif not is_empty_list(merged_from):                                                        # merged_from (list)
+      for merged_item in merged_from:
+        attributes_dict['links'].append(                       {
+                                                                   'link':      merged_item,
                                                                    'type':      "merged_from",
                                                                    'status':    status,
                                                                    'reviewed':  reviewed,
                                                                    'change':    change_new
                                                                }
-                                     )
+                                       )
+      # End for merged_item
     elif not is_empty(split_from):                                                              # add split_from
       attributes_dict['links'].append(                         {
                                                                    'link':      split_from,
@@ -1024,7 +1026,7 @@ def define_env(env):
                                                                     #         1: Log a warning, if successor(s) of link_id exist
                                                                     #         2: Add the latest version(s), if successor(s) exist, log an info
                                                                     #         3: show only the latest version, if *one* successor exist.
-                                                                    #            Add latest versions if more (splitted) splitted veresions exist (see 2), log an info
+                                                                    #            Add latest versions if more split versions exist (see 2), log an info
     text            = args.get('text',          ""          )       # default text is "" -> use prefix, doc, doc_suffix, link_names
     prefix          = args.get('prefix',        ""          )       # default prefix = ""
     separator       = args.get('separator',     ", "        )       # default separator = ""
@@ -1126,7 +1128,7 @@ def define_env(env):
       # check for successor(s):
       if (latest > 0) and (_get_latest_links(osib_obj=osib_link_obj, latest_links=latest_links, lang=lang, caller_function=caller_function)):
         successor_str        = ""
-        if len(latest_links) > 1:                                   # more than one successor: splitted_to
+        if len(latest_links) > 1:                                   # more than one successor: split_to
           if lang in split_to_texts:
             successor_str   += split_to_texts[lang]
           elif default_lang in split_to_texts:
