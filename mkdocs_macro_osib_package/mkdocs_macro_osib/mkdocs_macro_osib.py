@@ -1365,6 +1365,7 @@ def on_post_build(env):
     if debug >2:                                                    # big debug
       logger.debug(f" -> DATA:\n{yaml.dump(osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n\n")
     logger.info(f"Write OSIB-yaml file '{file_name}' including up to {added_yaml_data} new or changed attributes.")
+    added_yaml_data     = 0                                         # reset counter
     with open(file_name, 'w') as fout:
       data = yaml.dump(osib_yaml, fout, sort_keys=False, indent=2, default_flow_style=False)
     added_yaml_data = 0                                             # reset counter for new data
