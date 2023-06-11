@@ -49,7 +49,7 @@ plugins:
 # Optionally you can define variables in the 'extra' section:
 extra:
     osib:
-     document:     osib.owasp.top10             # e.g. osib.owasp.top10
+     document:     osib.owasp.osib.test         # e.g. osib.owasp.top10
      version:      2021                         # e.g. 4-0, 2021-1-0
      categories:   [document, awareness]        # list of all default categories
      default_lang: en

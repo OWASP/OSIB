@@ -6,7 +6,7 @@ lang:    "en"
 ---
 {%- set parent = extra.osib.document ~ "." ~ extra.osib.version -%}
 {%- set osib   = parent ~ ".1" -%}
-#A01:2021 – Broken Access Control     ![icon](assets/TOP_10_Icons_Final_Broken_Access_Control.png){: style=\height:80px;width:80px\ align=\right\} {{ osib_anchor(osib=osib, id=id, name="Broken Access Control", lang=lang, source=source, parent=parent) }}
+#A01:2021 – Broken Access Control (Test Page) {{ osib_anchor(osib=osib, id=id, name="Broken Access Control", lang=lang, source=source, parent=parent, predecessor=extra.osib.document ~ ".2017.5" ) }}
 
 
 ## Factors {{ osib_anchor(osib=osib ~ ".factors", id=id ~ "-factors", name=title ~ ": Factors", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
@@ -97,7 +97,7 @@ and integration tests.
 is accessing account information:
 
 ```
- pstmt.setString(1, request.getParameter(\acct\));
+ pstmt.setString(1, request.getParameter("acct"));
  ResultSet results = pstmt.executeQuery( );
 ```
 
@@ -121,13 +121,13 @@ non-admin can access the admin page, this is a flaw.
 
 ## References {{ osib_anchor(osib=osib ~ ".references", id=id ~ "-references", name=title ~ ": References", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
 
--    {{ osib_link(link= "osib.owasp.opc.3." ~ "7", osib=osib) }} <!-- [OWASP Proactive Controls: Enforce Access Controls](https://owasp.org/www-project-proactive-controls/v3/en/c7-enforce-access-controls) --> 
--    {{ osib_link(link= "osib.owasp.asvs.4-0." ~ "4", osib=osib) }} <!-- [OWASP Application Security Verification Standard: V4 Access Control](https://owasp.org/www-project-application-security-verification-standard) --> 
--    {{ osib_link(link= "osib.owasp.wstg.4-2.4.5", osib=osib) }} <!-- [OWASP Testing Guide: Authorization Testing](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/README) --> 
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "Authorization", osib=osib) }} <!-- [OWASP Cheat Sheet: Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) -->
--   Some missing links {{ osib_link(link="osib.missing.link", osib=osib) }} <!--- This and the next 2 links are missing --->
--   {{ osib_link(link= "osib.portswigger.research.articles.exploiting cors misconfigurations for bitcoins and bounties", osib=osib) }} <!--- [PortSwigger: Exploiting CORS misconfiguration](https://portswigger.net/blog/exploiting-cors-misconfigurations-for-bitcoins-and-bounties) --->
--   {{ osib_link(link= "osib.oauth.oauth2-servers.listing-authorizations.revoking-access", osib=osib) }} <!--- [OAuth: Revoking Access](https://www.oauth.com/oauth2-servers/listing-authorizations/revoking-access/) --->
+-   {{ osib_link(link="osib.owasp.opc.3." ~ "7", osib=osib) }} <!-- [OWASP Proactive Controls: Enforce Access Controls](https://owasp.org/www-project-proactive-controls/v3/en/c7-enforce-access-controls) --> 
+-   {{ osib_link(link="osib.owasp.asvs.4-0." ~ "4", osib=osib) }} <!-- [OWASP Application Security Verification Standard: V4 Access Control](https://owasp.org/www-project-application-security-verification-standard) --> 
+-   {{ osib_link(link="osib.owasp.wstg.4-2.4.5", osib=osib) }} <!-- [OWASP Testing Guide: Authorization Testing](https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/README) --> 
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "Authorization", osib=osib) }} <!-- [OWASP Cheat Sheet: Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.portswigger.research.articles.exploiting cors misconfigurations for bitcoins and bounties", osib=osib) }} <!--- [PortSwigger: Exploiting CORS misconfiguration](https://portswigger.net/blog/exploiting-cors-misconfigurations-for-bitcoins-and-bounties) --->
+-   {{ osib_link(link="osib.oauth.oauth2 servers.listing authorizations.revoking access", osib=osib) }} <!--- [OAuth: Revoking Access](https://www.oauth.com/oauth2-servers/listing-authorizations/revoking-access/) --->
+-   OSIB: Example wit a missing link: {{ osib_link(link="osib.missing.link", osib=osib) }} <!--- This link is missingi to shot error handling --->
 
 ## List of Mapped CWEs {{ osib_anchor(osib=osib ~ ".mapped cwes", id=id ~ "-mapped_cwes", name=title ~ ": List of Mapped CWEs", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
 

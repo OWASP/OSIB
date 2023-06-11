@@ -6,7 +6,7 @@ lang:    "en"
 ---
 {%- set parent = extra.osib.document ~ "." ~ extra.osib.version -%}
 {%- set osib   = parent ~ ".2" -%}
-#A02:2021 – Cryptographic Failures     ![icon](assets/TOP_10_Icons_Final_Crypto_Failures.png){: style=\height:80px;width:80px\ align=\right\} {{ osib_anchor(osib=osib, id=id, name="Cryptographic Failures", lang=lang, source=source, parent=parent) }}
+#A02:2021 – Cryptographic Failures (Test Page) {{ osib_anchor(osib=osib, id=id, name="Cryptographic Failures", lang=lang, source=source, parent=parent, predecessor=extra.osib.document ~ ".2017.3") }}
 
 
 ## Factors {{ osib_anchor(osib=osib ~ ".factors", id=id ~ "-factors", name=title ~ ": Factors", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
@@ -75,7 +75,7 @@ For all such data:
 -   Are cryptographic error messages or side channel information
     exploitable, for example in the form of padding oracle attacks?
 
-See ASVS Crypto (V7), Data Protection (V9), and SSL/TLS (V10)
+See {{ osib_link(link="osib.owasp.asvs.4-0.6", prefix="ASVS ", doc="", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.8", doc="", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.9", doc="", osib=osib) }}<!--- ASVS Crypto (V7), Data Protection (V9), and SSL/TLS (V10)--->
 
 ## How to Prevent {{ osib_anchor(osib=osib ~ ".how to prevent", id=id ~ "-how_to_prevent", name=title ~ ": How to Prevent", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
 
@@ -158,14 +158,14 @@ salted.
 
 ## References {{ osib_anchor(osib=osib ~ ".references", id=id ~ "-references", name=title ~ ": References", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
 
--    {{ osib_link(link= "osib.owasp.opc.3." ~ "8", osib=osib) }} <!-- [OWASP Proactive Controls: Protect Data Everywhere](https://owasp.org/www-project-proactive-controls/v3/en/c8-protect-data-everywhere) -->
--    {{ osib_link(link= "osib.owasp.asvs.4-0.6", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.8", doc="", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.9", doc="", osib=osib) }} <!--- [OWASP Application Security Verification Standard (V7, 9, 10)](https://owasp.org/www-project-application-security-verification-standard) --->
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "Transport Layer Protection", osib=osib) }} <!-- [OWASP Cheat Sheet: Transport Layer Protection](https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html) -->
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "User Privacy Protection", osib=osib) }} <!-- [OWASP Cheat Sheet: User Privacy Protection](https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html) -->
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "Password Storage", osib=osib) }} <!-- [OWASP Cheat Sheet: Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) -->
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "Cryptographic Storage", osib=osib) }} <!-- [OWASP Cheat Sheet: Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html) -->
--    {{ osib_link(link= "osib.owasp.cheatsheetseries.0." ~ "HSTS", osib=osib) }} <!-- [OWASP Cheat Sheet: HSTS](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html) -->
--    {{ osib_link(link= "osib.owasp.wstg.4-2.4.9", osib=osib) }} <!-- [OWASP Testing Guide: Testing for weak cryptography ](https://owasp.org/www-project-web-security-testing-guide/stable/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/README) -->
+-   {{ osib_link(link="osib.owasp.opc.3." ~ "8", osib=osib) }} <!-- [OWASP Proactive Controls: Protect Data Everywhere](https://owasp.org/www-project-proactive-controls/v3/en/c8-protect-data-everywhere) -->
+-   {{ osib_link(link="osib.owasp.asvs.4-0.6", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.8", doc="", osib=osib) }}, {{ osib_link(link= "osib.owasp.asvs.4-0.9", doc="", osib=osib) }} <!--- [OWASP Application Security Verification Standard (V7, 9, 10)](https://owasp.org/www-project-application-security-verification-standard) --->
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "Transport Layer Protection", osib=osib) }} <!-- [OWASP Cheat Sheet: Transport Layer Protection](https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "User Privacy Protection", osib=osib) }} <!-- [OWASP Cheat Sheet: User Privacy Protection](https://cheatsheetseries.owasp.org/cheatsheets/User_Privacy_Protection_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "Password Storage", osib=osib) }} <!-- [OWASP Cheat Sheet: Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "Cryptographic Storage", osib=osib) }} <!-- [OWASP Cheat Sheet: Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.owasp.cheatsheetseries.0." ~ "HSTS", osib=osib) }} <!-- [OWASP Cheat Sheet: HSTS](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html) -->
+-   {{ osib_link(link="osib.owasp.wstg.4-2.4.9", osib=osib) }} <!-- [OWASP Testing Guide: Testing for weak cryptography ](https://owasp.org/www-project-web-security-testing-guide/stable/4-Web_Application_Security_Testing/09-Testing_for_Weak_Cryptography/README) -->
 
 ## List of Mapped CWEs {{ osib_anchor(osib=osib ~ ".mapped cwes", id=id ~ "-mapped_cwes", name=title ~ ": List of Mapped CWEs", lang=lang, source=source ~ "#" ~ id, parent=osib) }}
 
