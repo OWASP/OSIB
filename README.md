@@ -1,6 +1,8 @@
-# Open Security Information Base (OSIB)<br>
+# OWASP Open Security Information Base (OSIB)
+- **Project Page:** [https://owasp.org/www-project-open-security-information-base](https://owasp.org/www-project-open-security-information-base)
+- **Software Repository:** [https://github.com/OWASP/OSIB](https://github.com/OWASP/OSIB)
 
-Tools:<br>
+## Provided Tools:<br>
 - mkdocs_macro_osib.py  (manually insallable python module)<br>
 - osib_macro.py         (macro to copy that imports the python module)<br>
 ```
