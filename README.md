@@ -5,6 +5,12 @@
 ## Provided Tools:<br>
 - mkdocs_macro_osib.py  (manually insallable python module)<br>
 - osib_macro.py         (macro to copy that imports the python module)<br>
+
+## Links/Data:
+- osib.yml              (provides several thousands of (deep) links to MITRE CWE and OWASP ASVS, Cheat Sheets, Proactive Controls, SAMM, WSTG,<br> 
+                         OWASP Community Pages, Automated Threats to Web Applications (OAT) and other IT security standards ...<br>
+                         ... and versioning from Top10:2021 up to 2010<br>
+                         ... to be coninued ...)
 ```
 #!##################################################################################################################################################
 #!# This MkDocs MACRO has been developed by the OWASP-Top 10 Project in 2021.
