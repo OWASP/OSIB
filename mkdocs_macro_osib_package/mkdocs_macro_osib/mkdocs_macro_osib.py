@@ -792,7 +792,8 @@ def define_env(env):
     change_new      = args.get('change_new',        "new"       )       # default change_new="new"       => adds change="new"
     change_update   = args.get('change_update',     "update"    )       # default change_update="update" => adds change="update"
     reviewed        = args.get('reviewed',          datestamp   )       # default reviewed=<datestamp>
-    predecessor     = args.get('predecessor',       ""          )       # default predecessor is ""
+    previous        = args.get('previous',          ""          )       # alias for predecessor, default previous is ""
+    predecessor     = args.get('predecessor',       previous    )       # default predecessor is ""
     merged_from     = args.get('merged_from',       []          )       # default merged_from is []
     split_from      = args.get('split_from',        ""          )       # default split_from is ""
     no_reverse      = args.get('no_reverse',        False       )       # default no_reverse = False; True: does not generate reverse links if any other value is set
