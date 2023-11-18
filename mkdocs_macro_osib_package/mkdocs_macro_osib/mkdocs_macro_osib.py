@@ -769,6 +769,12 @@ def define_env(env):
     global osib_yaml                                                    # use global osib_yaml
     global osib_warnings
 
+    logger.info (f"Call MACRO osib_anchor():")
+    if debug > 2:                                                       # big_debug
+      logger.info (f"  args(raw)  = {args}")
+    args = {
+      k.lower(): v    for k, v in args.items()                          # normalize keys to small letters
+    }
     osib_id         = args.get('osib',              "osib"      )       # default osib is "osib"
     create_organization = args.get('create_organization', False )       # default is False
     source_id       = args.get('id',                ""          )       # default source_id is ""
@@ -786,7 +792,8 @@ def define_env(env):
     change_new      = args.get('change_new',        "new"       )       # default change_new="new"       => adds change="new"
     change_update   = args.get('change_update',     "update"    )       # default change_update="update" => adds change="update"
     reviewed        = args.get('reviewed',          datestamp   )       # default reviewed=<datestamp>
-    predecessor     = args.get('predecessor',       ""          )       # default predecessor is ""
+    previous        = args.get('previous',          ""          )       # alias for predecessor, default previous is ""
+    predecessor     = args.get('predecessor',       previous    )       # default predecessor is ""
     merged_from     = args.get('merged_from',       []          )       # default merged_from is []
     split_from      = args.get('split_from',        ""          )       # default split_from is ""
     no_reverse      = args.get('no_reverse',        False       )       # default no_reverse = False; True: does not generate reverse links if any other value is set
@@ -797,12 +804,12 @@ def define_env(env):
     # end parameters
     osib_id         = _normalize_osib(osib_id, caller_function="osib_anchor")
 
-    logger.info (f"Call MACRO osib_anchor():\n  args       = {args}")
+    logger.info (f"  args       = {args}")
     if debug > 2:                                                   # big_debug
       logger.info (f"  lang       = {lang}\n  categories = {categories}\n  datestamp  = {datestamp}")
     invalid_keys = [k for k in args if k not in ['osib', 'create_organization', 'id', 'source', 'parent', 'lang', 'name', 'description', 'aliases', 
                                                  'categories', 'maturity', 'protection_need', 'cre', 'status', 'change_new', 'change_update', 'reviewed',
-                                                 'predecessor', 'merged_from', 'split_from', 'no_reverse', 'reverse_status', 'silent']]
+                                                 'previous', 'predecessor', 'merged_from', 'split_from', 'no_reverse', 'reverse_status', 'silent']]
     if not is_empty_list(invalid_keys):
       err_str=f">>> MACRO osib_anchor(): invalid key(s) '{invalid_keys}' in args '{args}' ignored;\n{help_str}"
       logger.warning(err_str)
@@ -1086,6 +1093,12 @@ def define_env(env):
   # (C) OWASP/The Top10-Team, 2021                                                                                                              #
   ###############################################################################################################################################
   def osib_link(**args):
+    logger.info (f"Call MACRO osib_link():")
+    if debug > 2:                                                   # big_debug
+      logger.info (f"  args(raw)  = {args}")
+    args = {
+      k.lower(): v    for k, v in args.items()                      # normalize keys to small letters
+    }
     link_id         = args.get('link',          ""          )       # osib link, default link is ""
     link_id         = _normalize_osib(link_id, caller_function="osib_link(link_id)")
     create_organzation = args.get('create_organization',  False )   # default is False
@@ -1126,7 +1139,7 @@ def define_env(env):
     # end parameters
     caller_function = "MACRO osib_link(): "                         # for debugging
 
-    logger.info (f"Call MACRO osib_link():\n  args       = {args}")
+    logger.info (f"  args       = {args}")
     invalid_keys = [k for k in args if k not in ['link', 'lang', 'latest', 'text', 'prefix', 'separator', 'doc', 'doc_suffix', 'osib', 'create_organization',
                                                  'type', 'status', 'change_new', 'reverse_status', 'reviewed', 'no_reverse', 'silent']]
     if not is_empty_list(invalid_keys):
