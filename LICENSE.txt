@@ -1,0 +1,21 @@
+# OWASP Open Security Information Base (OSIB)
+- **Project Page:** [https://owasp.org/www-project-open-security-information-base](https://owasp.org/www-project-open-security-information-base)
+- **Software Repository:** [https://github.com/OWASP/OSIB](https://github.com/OWASP/OSIB)
+
+#!##################################################################################################################################################
+#!# This MkDocs MACRO has been developed by the OWASP-Top 10 Project in 2021.
+#!# ------------------------------------------------------------------------------------------------------------------------------------------------
+#!# This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties
+#!# of merchantability, fitness for a particular purpose. In no event shall the copyright holders or authors be liable for any claim, 
+#!# damages or other liability. This software is distributed in the hope that it will be useful.
+#!#
+#!# (C) OWASP/The Top10-Team, 2021
+#!#
+#!# This  software is licensed under GPLv2.
+#!# GPL - The GNU General Public License, version 2 as specified in:  http://www.gnu.org/licenses/gpl-2.0
+#!#
+#!# Permits anyone the right to use and modify the software without limitations as long as proper credits are given and the original and modified source
+#!# code are included. Requires that the final product, software derivate from the original source or any software utilizing a GPL component, such as
+#!# this, is also licensed under the same GPL license.
+#!#
+#!##################################################################################################################################################
