@@ -48,23 +48,33 @@
 #!# - dacite:               pip install dacite               (https://github.com/konradhalas/dacite)
 #!#
 #!# Installation:
-#!# Actually 'manual installation' only:
+#!# 1a) Automatic installation using requirements.txt:
+#!#    Add these lines to your requirements.txt file (without heading #!# and spaces):
+#!#       mkdocs
+#!#       mkdocs-macros-plugin
+#!#       dacite
+#!#       git+https://github.com/OWASP/OSIB.git#subdirectory=mkdocs_macro_osib_package
+#!#    pip install -r requirements.txt
+#!# verify if osib is in your pip list
+#!#    pip list | grep osib
+#!#
+#!# 1b) Manual Installation:
 #!#    cd <your path>/mkdocs_macro_osib_package
 #!#    pip install .
 #!# verify if osib is in your pip list
 #!#    pip list | grep osib
 #!#
-#!# Developers Installation
+#!# 1c) Developers Installation
 #!#    cd <your path>/mkdocs_macro_osib_package
 #!#    pip install -e .
 #!# verify if osib is in your pip list
 #!#    pip list | grep osib
 #!#
-#!$ Copy or edit 'osib_macro.py' to the root folder of your mkdocs document
+#!$ 2) Copy or edit 'osib_macro.py' to the root folder of your mkdocs document
 #!#    from mkdocs_macro_osib import define_env, on_post_build
 #!#    #provides MkDocs macros 'osib_anchor' and 'osib_link'
 #!#
-#!# To use the macros add in 'mkdocs.yml' (if you use the plugin 'i18n' add this macro after it):
+#!# 3) To use the macros add in 'mkdocs.yml' (if you use the plugin 'i18n' add this macro after it):
 #!# plugins:
 #!#   - macros:                                                         # needs to be the last plugin to export the final osib-YAML file for all languages
 #!#      module_name: 'osib_macro'
