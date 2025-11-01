@@ -76,7 +76,7 @@
 #!#      yaml_file:    include/osib.yml
 #!#      export_dir:   export
 #!#      latest:       2                            # 2: add the latest version(s), if successor(s) exist, log an info
-#!#      debug:        2                            # debug level (0-4)
+#!#      debug:        0                            # debug level (0-4)
 #!#      cre:          osib.owasp.cre.1-0
 #!#      successor_texts:
 #!#        en:         successor
@@ -114,7 +114,7 @@ import yaml
 
 yaml_file           = "include/osib.yml"                            # Default import yaml file
 export_dir          = "export"                                      # Default Export dirctory
-debug               = 2                                             # debug level 0 ... 4
+debug               = 0                                             # debug level 0 ... 4
 default_lang        = "en"                                          # default language is 'en'
 categories_default  = []                                            # no categories by default
 latest_default      = 2
@@ -206,7 +206,8 @@ def read_osib_yaml(yaml_file: str):
   logger.info(f"read_osib_yaml({yaml_file}).")
   with open(yaml_file, 'r') as fin:
     _osib_yaml = yaml.safe_load(fin)
-  logger.debug(f" -> OSIB YAML:\n{yaml.dump(_osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n")
+  if debug >1:
+    logger.debug(f" -> OSIB YAML:\n{yaml.dump(_osib_yaml, sort_keys=False, indent=2, default_flow_style=False)}\n")
   return (_osib_yaml)
 
 
@@ -230,8 +231,9 @@ def define_env(env):
   global successors_default
   global successor_texts
   global osib_warnings
-
-  logger.debug(f"MACRO (define_env): Environment-Config: get global default values from env.conf['extra']['osib']: {env.conf['extra']['osib']}")
+  
+  if debug > 0:
+    logger.debug(f"MACRO (define_env): Environment-Config: get global default values from env.conf['extra']['osib']: {env.conf['extra']['osib']}")
   if (not is_empty(env.conf)) and ('extra' in env.conf) and ('osib' in env.conf['extra']):      # get global default values
     if 'debug' in env.conf['extra']['osib']:
       debug             = env.conf['extra']['osib']['debug']
@@ -255,7 +257,8 @@ def define_env(env):
     if 'split_to_texts'   in env.conf['extra']['osib']:
       for successors_lang, value in env.conf['extra']['osib']['split_to_texts']:
         successor_texts[successors_lang] = value
-    logger.debug(f"MACRO (define_env): Environment-Config: set global default values:\n  - debug = {debug}\n  - default_lang = {default_lang}\n  - categories_default = {categories_default}\n  - export_dir = {export_dir}\n  - latest = {latest_default}\n  - yaml_file = {yaml_file}\n  - successor_texts = {successor_texts}\n  - split_to_texts = {split_to_texts}")
+    if debug > 1:
+        logger.debug(f"MACRO (define_env): Environment-Config: set global default values:\n  - debug = {debug}\n  - default_lang = {default_lang}\n  - categories_default = {categories_default}\n  - export_dir = {export_dir}\n  - latest = {latest_default}\n  - yaml_file = {yaml_file}\n  - successor_texts = {successor_texts}\n  - split_to_texts = {split_to_texts}")
 
   if not osib_yaml:                                                 # global osib_yaml is not defined
     logger.debug(f"read OSIB YAML file '{yaml_file}'.")
@@ -412,7 +415,8 @@ def define_env(env):
         if debug >2:
           logger.debug (f"   path = '{path}'\n")
         nr += 1
-        logger.debug(f" ~ {nr}. list item {item}\n")
+        if debug > 1:
+          logger.debug(f" ~ {nr}. list item {item}\n")
         result = _lookup_yaml (item, path, path_item, get_attributes = get_attributes, create = create, attributes = attribute, caller_function = caller_function)
         if debug >2:                                                # big debug
           logger.debug (f"   path       = '{path[path_item:]}'\n")  # check if path is modifed

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name                ="mkdocs_macro_osib",
-    version             ="0.9.1",
+    version             ="0.9.2",
     author              ="Torsten Gigler as member of the OWASP Top 10 Team 2021",
     description         ="MkDocs-Macro to use and extend the Open Security Information Base (OSIB) to provide, manage and use links between it-security documents, e.g. standards, best practices e.g. projects",
     long_description    =long_description,
